@@ -1,0 +1,1280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily SE Tool</title>
+
+  <!-- SheetJS (XLSX export) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+:root{
+  --beige:#f6f3dd;
+  --green:#028b43;
+  --orange:#f8a925;
+  --bg:var(--beige);
+  --text:#0b1220;
+  --muted:#475569;
+  --card:#ffffff;
+  --border:#e5e7eb;
+}
+
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.container{
+  max-width:600px;
+  margin:auto;
+  padding:15px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+}
+
+h2{
+  margin-top:0;
+}
+
+label{
+  font-size:14px;
+  font-weight:bold;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+  margin-bottom:10px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  font-size:14px;
+  box-sizing:border-box;
+}
+
+button{
+  padding:10px 15px;
+  border-radius:20px;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-primary{
+  background:var(--green);
+  color:white;
+}
+
+.btn-orange{
+  background:var(--orange);
+  color:black;
+}
+
+.btn-secondary{
+  background:white;
+  border:1px solid var(--border);
+}
+
+.flex{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.table-container{
+  overflow-x:auto;
+}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+  font-size:13px;
+}
+
+th, td{
+  padding:8px;
+  border:1px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+
+th{
+  background:#eee5d8;
+}
+
+.error{
+  color:red;
+  font-size:13px;
+}
+
+.warning{
+  color:#b45309;
+  font-size:13px;
+}
+.small{
+  font-size:12px;
+  color:var(--muted);
+}
+hr.sep{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:12px 0;
+}
+.badge{
+  display:inline-block;
+  padding:2px 8px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  font-size:12px;
+  background:#fff;
+  color:var(--muted);
+}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="card">
+      <h2>Daily SE Tool</h2>
+      <p class="small">
+        This tool helps you record daily sales and related variables for Sales Executive (SE).
+        Please submit the completed table each day to the S&amp;M Manager via WhatsApp or email.
+      </p>
+    </div>
+
+    <!-- Global Interface -->
+    <div class="card" id="globalCard">
+      <h2>Global Interface</h2>
+
+      <label for="globalDate">Date</label>
+      <input id="globalDate" type="date" />
+
+      <label for="seName">SE Name</label>
+      <input id="seName" type="text" placeholder="Enter SE name" />
+
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="newClient">New Client</option>
+        <option value="order">Order</option>
+        <option value="sale">Sale</option>
+      </select>
+
+      <p class="warning" id="warnMsg"></p>
+      <p class="error" id="errorMsg"></p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card" id="formCard">
+      <h2 id="formTitle">New Client</h2>
+
+      <!-- NEW CLIENT FORM -->
+      <div id="newClientForm">
+        <label for="ncDistrict">District</label>
+        <select id="ncDistrict">
+          <option value="Hoima">Hoima</option>
+          <option value="Buliisa">Buliisa</option>
+          <option value="Masindi">Masindi</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label for="ncType">Client Type</label>
+        <select id="ncType">
+          <option value="School">School</option>
+          <option value="Retailer">Retailer</option>
+          <option value="Restaurant">Restaurant</option>
+          <option value="Institution">Institution</option>
+          <option value="Individual">Individual</option>
+        </select>
+
+        <div id="individualDigitWrap" style="display:none;">
+          <label for="ncIndDigit">Individual Code (Second Digit 5–9)</label>
+          <select id="ncIndDigit">
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+          </select>
+          <p class="small">Individuals use codes 5–9 as the 2nd digit.</p>
+        </div>
+
+        <label>Client ID (auto prefix + manual last 3 digits)</label>
+        <div class="flex" style="align-items:flex-end;">
+          <div style="flex:1; min-width:160px;">
+            <label for="ncPrefix" class="small">Prefix (auto)</label>
+            <input id="ncPrefix" type="text" readonly />
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label for="ncLast3" class="small">Last 3 digits (XXX)</label>
+            <input id="ncLast3" type="text" inputmode="numeric" maxlength="3" placeholder="e.g. 001" />
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label for="ncClientId" class="small">Full Client ID</label>
+            <input id="ncClientId" type="text" readonly />
+          </div>
+        </div>
+
+        <label for="ncClientName">Client Name</label>
+        <input id="ncClientName" type="text" placeholder="Client name" />
+
+        <label for="ncLevel">Level</label>
+        <select id="ncLevel">
+          <option value="N+1">N+1</option>
+          <option value="N+2">N+2</option>
+          <option value="N+3">N+3</option>
+        </select>
+        <p class="small">Auto-set by type (Retailer→N+1, School/Restaurant/Institution→N+2, Individual→N+3) but editable.</p>
+
+        <label for="ncParishHoima" id="parishLabel">Parish</label>
+
+        <select id="ncParishHoima" style="display:none;">
+          <option value="">Select ward (Hoima)</option>
+          <option>Kasingo ward</option>
+          <option>Kihuukya ward</option>
+          <option>Kiduuma ward</option>
+          <option>Kibingo ward</option>
+          <option>Karongo ward</option>
+          <option>Bujuura ward</option>
+          <option>Kyesiiga ward</option>
+          <option>Kihombooza ward</option>
+          <option>Western ward Hoima</option>
+          <option>Kicwamba ward</option>
+          <option>Kyentale ward</option>
+          <option>Nyakambugu ward</option>
+          <option>Bwikya ward</option>
+          <option>Northern ward Hoima</option>
+          <option>Southern ward Hoima</option>
+          <option>Central ward Hoima</option>
+        </select>
+
+        <input id="ncParishText" type="text" style="display:none;" placeholder="Type parish" />
+
+        <label for="ncContact">Contact</label>
+        <input id="ncContact" type="text" placeholder="Phone / name / contact info" />
+
+        <div id="statusEnrollWrap">
+          <label for="ncStatus">Status</label>
+          <select id="ncStatus">
+            <option value="Active">Active</option>
+            <option value="On hold">On hold</option>
+            <option value="Quit">Quit</option>
+          </select>
+
+          <label for="ncEnrollDate">Enrollment Date</label>
+          <input id="ncEnrollDate" type="date" />
+        </div>
+      </div>
+
+      <!-- ORDER FORM -->
+      <div id="orderForm" style="display:none;">
+        <label for="ordClientId">Client ID (select or type)</label>
+        <input id="ordClientId" list="clientIdList" placeholder="Choose or type Client ID" />
+        <datalist id="clientIdList"></datalist>
+
+        <label for="ordBlank1">Blank Field 1</label>
+        <input id="ordBlank1" type="text" placeholder="Free text" />
+
+        <label for="ordBlank2">Blank Field 2</label>
+        <input id="ordBlank2" type="text" placeholder="Free text" />
+
+        <label for="ordDate">Date of Order</label>
+        <input id="ordDate" type="date" />
+
+        <label for="ordDeliveryDate">Date of Delivery</label>
+        <input id="ordDeliveryDate" type="date" />
+
+        <label for="ordLocation">Location of Delivery</label>
+        <input id="ordLocation" type="text" placeholder="Type location" />
+
+        <label for="ordProduct">Type of Product</label>
+        <select id="ordProduct">
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
+          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
+          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
+          <option value="Skewers (portion)">Skewers (portion)</option>
+        </select>
+
+        <label for="ordQty">Quantity</label>
+        <input id="ordQty" type="number" step="0.001" placeholder="Enter quantity" />
+      </div>
+
+      <!-- SALE FORM -->
+      <div id="saleForm" style="display:none;">
+        <label for="saleClientId">Client ID (select or type)</label>
+        <input id="saleClientId" list="clientIdList" placeholder="Choose or type Client ID" />
+
+        <label for="saleProduct">Product</label>
+        <select id="saleProduct">
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
+          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
+          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
+          <option value="Skewers (portion)">Skewers (portion)</option>
+        </select>
+
+        <label for="saleUnitPrice">Unit Price (auto)</label>
+        <input id="saleUnitPrice" type="number" readonly />
+
+        <div class="flex">
+          <div style="flex:1; min-width:220px;">
+            <label for="saleQtyKg">Quantity (kg)</label>
+            <input id="saleQtyKg" type="number" step="0.001" placeholder="Enter kg" />
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label for="saleQtyPortion">Quantity (portion)</label>
+            <input id="saleQtyPortion" type="number" step="0.001" placeholder="Enter portions" />
+          </div>
+        </div>
+        <p class="small">For tofu: 1 portion = 1 kg. Kikalayi: 0.04 kg/portion. Skewers: 0.045 kg/portion.</p>
+
+        <hr class="sep" />
+        <span class="badge">Financial Data</span>
+
+        <label for="saleExpected">Expected Cash Collected (auto)</label>
+        <input id="saleExpected" type="number" readonly />
+
+        <label for="saleActual">Actual Cash Collected</label>
+        <input id="saleActual" type="number" step="1" placeholder="Enter actual cash" />
+
+        <label for="saleCommission">Commission 10% (auto)</label>
+        <input id="saleCommission" type="number" readonly />
+
+        <label for="saleDiscrepancy">Discrepancy (Expected - Actual) (auto)</label>
+        <input id="saleDiscrepancy" type="number" readonly />
+
+        <label for="saleTotalToPay">Total Amount to be Paid (Commission - Discrepancy) (auto)</label>
+        <input id="saleTotalToPay" type="number" readonly />
+
+        <label for="saleAdvances">Advances Fees</label>
+        <input id="saleAdvances" type="number" step="1" placeholder="Enter advances fees" />
+      </div>
+
+      <div class="flex">
+        <button class="btn-primary" id="recordBtn">Record Data</button>
+        <button class="btn-secondary" id="resetBtn">Reset Form</button>
+        <button class="btn-secondary" id="backBtn">Go Back to Global Interface</button>
+      </div>
+
+      <p class="error" id="formError"></p>
+      <p class="warning" id="formWarn"></p>
+    </div>
+
+    <!-- Records Card -->
+    <div class="card">
+      <h2>Records</h2>
+      <div class="flex">
+        <button class="btn-orange" id="exportBtn">Export XLSX</button>
+      </div>
+
+      <h3 style="margin-bottom:6px;">Clients</h3>
+      <div class="table-container">
+        <table id="clientsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SE Name</th>
+              <th>Client ID</th>
+              <th>Client Name</th>
+              <th>District</th>
+              <th>Parish</th>
+              <th>Client Type</th>
+              <th>Level</th>
+              <th>Contact</th>
+              <th>Status</th>
+              <th>Enrollment Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:14px 0 6px;">Orders</h3>
+      <div class="table-container">
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SE Name</th>
+              <th>Client ID</th>
+              <th>Blank 1</th>
+              <th>Blank 2</th>
+              <th>Date of Order</th>
+              <th>Date of Delivery</th>
+              <th>Location</th>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:14px 0 6px;">Sales</h3>
+      <div class="table-container">
+        <table id="salesTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SE Name</th>
+              <th>Client ID</th>
+              <th>Product</th>
+              <th>Unit Price</th>
+              <th>Qty (kg)</th>
+              <th>Qty (portion)</th>
+              <th>Expected</th>
+              <th>Actual</th>
+              <th>Commission</th>
+              <th>Discrepancy</th>
+              <th>Total To Pay</th>
+              <th>Advances</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:10px;">Data is saved in your browser (localStorage).</p>
+    </div>
+
+  </div>
+
+<script>
+/* =========================
+   Storage + State
+========================= */
+const STORAGE_KEY = "daily_se_tool_v1";
+
+let state = {
+  clients: [],
+  orders: [],
+  sales: [],
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      state = JSON.parse(raw);
+      if(!state.clients) state.clients = [];
+      if(!state.orders) state.orders = [];
+      if(!state.sales) state.sales = [];
+    }
+  }catch(e){
+    console.warn("Failed to load state", e);
+  }
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* =========================
+   Helpers
+========================= */
+function todayISO(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function setText(id, text){
+  document.getElementById(id).textContent = text || "";
+}
+
+function show(el){ el.style.display = ""; }
+function hide(el){ el.style.display = "none"; }
+
+function isValid3Digits(s){
+  return /^[0-9]{3}$/.test(String(s || "").trim());
+}
+
+function districtDigit(district){
+  // Hoima=1, Buliisa=2, Masindi=3, Other/outside=0
+  if(district === "Hoima") return "1";
+  if(district === "Buliisa") return "2";
+  if(district === "Masindi") return "3";
+  return "0";
+}
+
+function typeDigit(type){
+  // School=1, Retailer=2, Restaurant=3, Institution=4, Individual=5-9
+  if(type === "School") return "1";
+  if(type === "Retailer") return "2";
+  if(type === "Restaurant") return "3";
+  if(type === "Institution") return "4";
+  return ""; // individual handled separately
+}
+
+function autoLevelByType(type){
+  if(type === "Retailer") return "N+1";
+  if(type === "School" || type === "Restaurant" || type === "Institution") return "N+2";
+  if(type === "Individual") return "N+3";
+  return "N+2";
+}
+
+function ratioKgPerPortion(product){
+  // returns kg per portion
+  if(product === "Kikalayi (portion)" || product === "Kikalayi (kg)") return 0.04;
+  if(product === "Skewers (portion)") return 0.045;
+  if(product === "Fresh tofu (kg)" || product === "Fried tofu (kg)") return 1.0; // 1 portion = 1 kg
+  // if user picks kg variants of kikalayi, ratio same for portion conversions
+  return 1.0;
+}
+
+function isRetailerClientId(clientId){
+  // Retailers have second digit = 2 in this new scheme (e.g., 12xxx, 22xxx, 02xxx, 32xxx)
+  const id = String(clientId || "").trim();
+  return /^[0-3]2\d{3}$/.test(id);
+}
+
+function unitPrice(product, clientId){
+  const retailer = isRetailerClientId(clientId);
+  if(product === "Fresh tofu (kg)") return retailer ? 5000 : 6000;
+  if(product === "Fried tofu (kg)") return retailer ? 6500 : 7500;
+  if(product === "Kikalayi (kg)") return 10000;
+  if(product === "Kikalayi (portion)") return 500;
+  if(product === "Skewers (portion)") return 1000;
+  return 0;
+}
+
+function expectedCash(product, clientId, qtyKg, qtyPortion){
+  const price = unitPrice(product, clientId);
+  // reference unit: if product is portion-based -> use portions; else kg-based -> use kg
+  if(product.includes("(portion)")){
+    const q = Number(qtyPortion) || 0;
+    return price * q;
+  }else{
+    const q = Number(qtyKg) || 0;
+    return price * q;
+  }
+}
+
+function toNumber(x){
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function round2(n){
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/* =========================
+   Elements
+========================= */
+const globalDate = document.getElementById("globalDate");
+const seName = document.getElementById("seName");
+const mode = document.getElementById("mode");
+
+const newClientForm = document.getElementById("newClientForm");
+const orderForm = document.getElementById("orderForm");
+const saleForm = document.getElementById("saleForm");
+const formTitle = document.getElementById("formTitle");
+
+const recordBtn = document.getElementById("recordBtn");
+const resetBtn = document.getElementById("resetBtn");
+const backBtn = document.getElementById("backBtn");
+const exportBtn = document.getElementById("exportBtn");
+
+const formError = document.getElementById("formError");
+const formWarn = document.getElementById("formWarn");
+
+// New client inputs
+const ncDistrict = document.getElementById("ncDistrict");
+const ncType = document.getElementById("ncType");
+const ncIndDigitWrap = document.getElementById("individualDigitWrap");
+const ncIndDigit = document.getElementById("ncIndDigit");
+const ncPrefix = document.getElementById("ncPrefix");
+const ncLast3 = document.getElementById("ncLast3");
+const ncClientId = document.getElementById("ncClientId");
+const ncClientName = document.getElementById("ncClientName");
+const ncLevel = document.getElementById("ncLevel");
+const ncParishHoima = document.getElementById("ncParishHoima");
+const ncParishText = document.getElementById("ncParishText");
+const ncContact = document.getElementById("ncContact");
+const statusEnrollWrap = document.getElementById("statusEnrollWrap");
+const ncStatus = document.getElementById("ncStatus");
+const ncEnrollDate = document.getElementById("ncEnrollDate");
+
+// Order inputs
+const ordClientId = document.getElementById("ordClientId");
+const ordBlank1 = document.getElementById("ordBlank1");
+const ordBlank2 = document.getElementById("ordBlank2");
+const ordDate = document.getElementById("ordDate");
+const ordDeliveryDate = document.getElementById("ordDeliveryDate");
+const ordLocation = document.getElementById("ordLocation");
+const ordProduct = document.getElementById("ordProduct");
+const ordQty = document.getElementById("ordQty");
+
+// Sale inputs
+const saleClientId = document.getElementById("saleClientId");
+const saleProduct = document.getElementById("saleProduct");
+const saleUnitPrice = document.getElementById("saleUnitPrice");
+const saleQtyKg = document.getElementById("saleQtyKg");
+const saleQtyPortion = document.getElementById("saleQtyPortion");
+const saleExpected = document.getElementById("saleExpected");
+const saleActual = document.getElementById("saleActual");
+const saleCommission = document.getElementById("saleCommission");
+const saleDiscrepancy = document.getElementById("saleDiscrepancy");
+const saleTotalToPay = document.getElementById("saleTotalToPay");
+const saleAdvances = document.getElementById("saleAdvances");
+
+const clientIdList = document.getElementById("clientIdList");
+
+/* =========================
+   UI Logic
+========================= */
+function setModeUI(){
+  setText("warnMsg", "");
+  setText("errorMsg", "");
+  setText("formWarn", "");
+  setText("formError", "");
+
+  const m = mode.value;
+
+  hide(newClientForm); hide(orderForm); hide(saleForm);
+
+  if(m === "newClient"){
+    formTitle.textContent = "New Client";
+    show(newClientForm);
+  }else if(m === "order"){
+    formTitle.textContent = "Order";
+    show(orderForm);
+  }else{
+    formTitle.textContent = "Sale";
+    show(saleForm);
+  }
+}
+
+function updateParishUI(){
+  if(ncDistrict.value === "Hoima"){
+    show(ncParishHoima);
+    hide(ncParishText);
+  }else{
+    hide(ncParishHoima);
+    show(ncParishText);
+  }
+}
+
+function updateClientIdPrefix(){
+  const d1 = districtDigit(ncDistrict.value);
+  const type = ncType.value;
+
+  if(type === "Individual"){
+    show(ncIndDigitWrap);
+    const d2 = String(ncIndDigit.value);
+    ncPrefix.value = `${d1}${d2}`;
+  }else{
+    hide(ncIndDigitWrap);
+    const d2 = typeDigit(type);
+    ncPrefix.value = `${d1}${d2}`;
+  }
+
+  // auto set level but keep user-editable
+  const autoLvl = autoLevelByType(type);
+  ncLevel.value = autoLvl;
+
+  // status + enrollment only for non-individual
+  if(type === "Individual"){
+    hide(statusEnrollWrap);
+  }else{
+    show(statusEnrollWrap);
+  }
+
+  updateFullClientId();
+}
+
+function updateFullClientId(){
+  const last3 = String(ncLast3.value || "").trim();
+  const prefix = String(ncPrefix.value || "").trim();
+  if(/^\d{2}$/.test(prefix) && /^[0-9]{0,3}$/.test(last3)){
+    ncClientId.value = prefix + last3.padStart(Math.min(last3.length,3), "0");
+    // only show completed if 3 digits
+    if(isValid3Digits(last3)){
+      ncClientId.value = prefix + last3;
+    }else{
+      ncClientId.value = prefix + last3; // partial typing
+    }
+  }else{
+    ncClientId.value = "";
+  }
+}
+
+function rebuildClientIdDatalist(){
+  const ids = new Set();
+  state.clients.forEach(c => ids.add(String(c.clientId)));
+  // also include any typed IDs in orders/sales (optional) — but we keep list mainly from clients
+  clientIdList.innerHTML = "";
+  [...ids].sort().forEach(id => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    clientIdList.appendChild(opt);
+  });
+}
+
+/* =========================
+   Sale Calculations
+========================= */
+let saleLock = false; // prevent loop
+
+function updateSalePriceAndCalcs(){
+  const cid = saleClientId.value.trim();
+  const prod = saleProduct.value;
+  saleUnitPrice.value = unitPrice(prod, cid);
+
+  const kg = toNumber(saleQtyKg.value);
+  const portion = toNumber(saleQtyPortion.value);
+
+  const exp = expectedCash(prod, cid, kg, portion);
+  saleExpected.value = round2(exp);
+
+  const actual = toNumber(saleActual.value);
+  const comm = actual * 0.10;
+  saleCommission.value = round2(comm);
+
+  const disc = exp - actual;
+  saleDiscrepancy.value = round2(disc);
+
+  const total = comm - disc;
+  saleTotalToPay.value = round2(total);
+}
+
+function syncKgFromPortion(){
+  if(saleLock) return;
+  saleLock = true;
+  const prod = saleProduct.value;
+  const ratio = ratioKgPerPortion(prod);
+  const p = toNumber(saleQtyPortion.value);
+  const kg = p * ratio;
+  saleQtyKg.value = (Number.isFinite(kg) ? round2(kg) : "");
+  saleLock = false;
+  updateSalePriceAndCalcs();
+}
+
+function syncPortionFromKg(){
+  if(saleLock) return;
+  saleLock = true;
+  const prod = saleProduct.value;
+  const ratio = ratioKgPerPortion(prod);
+  const kg = toNumber(saleQtyKg.value);
+  const p = ratio === 0 ? 0 : (kg / ratio);
+  saleQtyPortion.value = (Number.isFinite(p) ? round2(p) : "");
+  saleLock = false;
+  updateSalePriceAndCalcs();
+}
+
+/* =========================
+   Record Actions
+========================= */
+function validateGlobal(){
+  const date = globalDate.value;
+  const se = seName.value.trim();
+  if(!date) return "Please select a date.";
+  if(!se) return "Please enter SE Name.";
+  return "";
+}
+
+function recordNewClient(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const district = ncDistrict.value;
+  const type = ncType.value;
+  const prefix = ncPrefix.value.trim();
+  const last3 = ncLast3.value.trim();
+
+  if(!/^\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
+  if(!isValid3Digits(last3)) return "Please enter the last 3 digits (XXX) as exactly 3 numbers (e.g., 001).";
+
+  const clientId = prefix + last3;
+
+  const clientName = ncClientName.value.trim();
+  if(!clientName) return "Please enter Client Name.";
+
+  const level = ncLevel.value;
+
+  let parish = "";
+  if(district === "Hoima"){
+    parish = ncParishHoima.value.trim();
+    if(!parish) return "Please select a parish (ward) for Hoima.";
+  }else{
+    parish = ncParishText.value.trim();
+    if(!parish) return "Please type the parish for this district.";
+  }
+
+  const contact = ncContact.value.trim();
+  if(type !== "Individual" && !contact){
+    return "Please enter Contact (required for non-individual clients).";
+  }
+  // Individual: contact optional
+
+  let status = "";
+  let enrollDate = "";
+  if(type !== "Individual"){
+    status = ncStatus.value;
+    enrollDate = ncEnrollDate.value;
+    if(!enrollDate) return "Please choose Enrollment Date.";
+  }
+
+  // prevent duplicate client ID? (soft warning)
+  const exists = state.clients.some(c => String(c.clientId) === clientId);
+  if(exists){
+    setText("formWarn", "Warning: This Client ID already exists. A new record will still be added.");
+  }
+
+  state.clients.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId,
+    clientName,
+    district,
+    parish,
+    clientType: type,
+    level,
+    contact,
+    status,
+    enrollmentDate: enrollDate
+  });
+
+  saveState();
+  renderAll();
+  rebuildClientIdDatalist();
+  return "";
+}
+
+function recordOrder(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const cid = ordClientId.value.trim();
+  if(!cid) return "Please select or type a Client ID.";
+
+  const b1 = ordBlank1.value.trim();
+  const b2 = ordBlank2.value.trim();
+
+  const dOrder = ordDate.value;
+  const dDel = ordDeliveryDate.value;
+  if(!dOrder) return "Please choose Date of Order.";
+  if(!dDel) return "Please choose Date of Delivery.";
+
+  const loc = ordLocation.value.trim();
+  if(!loc) return "Please enter Location of Delivery.";
+
+  const prod = ordProduct.value;
+  const qty = ordQty.value;
+  if(qty === "" || qty === null) return "Please enter Quantity.";
+
+  state.orders.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId: cid,
+    blank1: b1,
+    blank2: b2,
+    dateOfOrder: dOrder,
+    dateOfDelivery: dDel,
+    location: loc,
+    product: prod,
+    quantity: toNumber(qty)
+  });
+
+  saveState();
+  renderAll();
+  return "";
+}
+
+function recordSale(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const cid = saleClientId.value.trim();
+  if(!cid) return "Please select or type a Client ID.";
+
+  const prod = saleProduct.value;
+  const price = unitPrice(prod, cid);
+
+  // quantities (allow either entered)
+  const kg = toNumber(saleQtyKg.value);
+  const portion = toNumber(saleQtyPortion.value);
+  if(kg === 0 && portion === 0){
+    return "Please enter a quantity in kg or portion.";
+  }
+
+  const exp = toNumber(saleExpected.value);
+  const actual = toNumber(saleActual.value);
+  const comm = toNumber(saleCommission.value);
+  const disc = toNumber(saleDiscrepancy.value);
+  const total = toNumber(saleTotalToPay.value);
+  const adv = toNumber(saleAdvances.value);
+
+  state.sales.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId: cid,
+    product: prod,
+    unitPrice: price,
+    qtyKg: round2(kg),
+    qtyPortion: round2(portion),
+    expected: round2(exp),
+    actual: round2(actual),
+    commission: round2(comm),
+    discrepancy: round2(disc),
+    totalToPay: round2(total),
+    advances: round2(adv)
+  });
+
+  saveState();
+  renderAll();
+  return "";
+}
+
+function resetForm(){
+  setText("formWarn", "");
+  setText("formError", "");
+
+  const m = mode.value;
+  if(m === "newClient"){
+    ncLast3.value = "";
+    ncClientName.value = "";
+    ncContact.value = "";
+    ncParishHoima.value = "";
+    ncParishText.value = "";
+    // keep district/type selections
+    // keep level as auto-updated
+    if(ncType.value !== "Individual"){
+      ncStatus.value = "Active";
+      ncEnrollDate.value = todayISO();
+    }
+    updateFullClientId();
+  }else if(m === "order"){
+    ordClientId.value = "";
+    ordBlank1.value = "";
+    ordBlank2.value = "";
+    ordDate.value = todayISO();
+    ordDeliveryDate.value = todayISO();
+    ordLocation.value = "";
+    ordProduct.value = "Fresh tofu (kg)";
+    ordQty.value = "";
+  }else{
+    saleClientId.value = "";
+    saleProduct.value = "Fresh tofu (kg)";
+    saleQtyKg.value = "";
+    saleQtyPortion.value = "";
+    saleActual.value = "";
+    saleAdvances.value = "";
+    updateSalePriceAndCalcs();
+  }
+}
+
+function goBack(){
+  // This is a simple UI action; we keep the global interface visible anyway.
+  // We'll just scroll to the top/global card for convenience.
+  document.getElementById("globalCard").scrollIntoView({behavior:"smooth"});
+}
+
+/* =========================
+   Render Tables
+========================= */
+function renderAll(){
+  renderClients();
+  renderOrders();
+  renderSales();
+}
+
+function createDeleteBtn(onClick){
+  const btn = document.createElement("button");
+  btn.textContent = "Delete";
+  btn.className = "btn-secondary";
+  btn.style.padding = "6px 10px";
+  btn.style.borderRadius = "14px";
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function renderClients(){
+  const tbody = document.querySelector("#clientsTable tbody");
+  tbody.innerHTML = "";
+  state.clients.forEach((c, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.date}</td>
+      <td>${escapeHtml(c.seName)}</td>
+      <td>${escapeHtml(c.clientId)}</td>
+      <td>${escapeHtml(c.clientName)}</td>
+      <td>${escapeHtml(c.district)}</td>
+      <td>${escapeHtml(c.parish)}</td>
+      <td>${escapeHtml(c.clientType)}</td>
+      <td>${escapeHtml(c.level)}</td>
+      <td>${escapeHtml(c.contact || "")}</td>
+      <td>${escapeHtml(c.status || "")}</td>
+      <td>${escapeHtml(c.enrollmentDate || "")}</td>
+      <td></td>
+    `;
+    const delCell = tr.querySelector("td:last-child");
+    delCell.appendChild(createDeleteBtn(() => {
+      state.clients.splice(idx, 1);
+      saveState();
+      renderAll();
+      rebuildClientIdDatalist();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderOrders(){
+  const tbody = document.querySelector("#ordersTable tbody");
+  tbody.innerHTML = "";
+  state.orders.forEach((o, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${o.date}</td>
+      <td>${escapeHtml(o.seName)}</td>
+      <td>${escapeHtml(o.clientId)}</td>
+      <td>${escapeHtml(o.blank1 || "")}</td>
+      <td>${escapeHtml(o.blank2 || "")}</td>
+      <td>${escapeHtml(o.dateOfOrder)}</td>
+      <td>${escapeHtml(o.dateOfDelivery)}</td>
+      <td>${escapeHtml(o.location)}</td>
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(String(o.quantity))}</td>
+      <td></td>
+    `;
+    const delCell = tr.querySelector("td:last-child");
+    delCell.appendChild(createDeleteBtn(() => {
+      state.orders.splice(idx, 1);
+      saveState();
+      renderAll();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSales(){
+  const tbody = document.querySelector("#salesTable tbody");
+  tbody.innerHTML = "";
+  state.sales.forEach((s, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.date}</td>
+      <td>${escapeHtml(s.seName)}</td>
+      <td>${escapeHtml(s.clientId)}</td>
+      <td>${escapeHtml(s.product)}</td>
+      <td>${escapeHtml(String(s.unitPrice))}</td>
+      <td>${escapeHtml(String(s.qtyKg))}</td>
+      <td>${escapeHtml(String(s.qtyPortion))}</td>
+      <td>${escapeHtml(String(s.expected))}</td>
+      <td>${escapeHtml(String(s.actual))}</td>
+      <td>${escapeHtml(String(s.commission))}</td>
+      <td>${escapeHtml(String(s.discrepancy))}</td>
+      <td>${escapeHtml(String(s.totalToPay))}</td>
+      <td>${escapeHtml(String(s.advances))}</td>
+      <td></td>
+    `;
+    const delCell = tr.querySelector("td:last-child");
+    delCell.appendChild(createDeleteBtn(() => {
+      state.sales.splice(idx, 1);
+      saveState();
+      renderAll();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+}
+
+/* =========================
+   Export XLSX (3 sheets)
+========================= */
+function exportXLSX(){
+  setText("formError", "");
+  setText("formWarn", "");
+
+  if(typeof XLSX === "undefined"){
+    setText("formError", "XLSX library not loaded. Please check internet access to the CDN.");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Clients sheet
+  const clientsRows = state.clients.map(c => ({
+    Date: c.date,
+    "SE Name": c.seName,
+    "Client ID": c.clientId,
+    "Client Name": c.clientName,
+    District: c.district,
+    Parish: c.parish,
+    "Client Type": c.clientType,
+    Level: c.level,
+    Contact: c.contact || "",
+    Status: c.status || "",
+    "Enrollment Date": c.enrollmentDate || ""
+  }));
+  const wsClients = XLSX.utils.json_to_sheet(clientsRows);
+  XLSX.utils.book_append_sheet(wb, wsClients, "Clients");
+
+  // Orders sheet
+  const ordersRows = state.orders.map(o => ({
+    Date: o.date,
+    "SE Name": o.seName,
+    "Client ID": o.clientId,
+    "Blank 1": o.blank1 || "",
+    "Blank 2": o.blank2 || "",
+    "Date of Order": o.dateOfOrder,
+    "Date of Delivery": o.dateOfDelivery,
+    Location: o.location,
+    Product: o.product,
+    Quantity: o.quantity
+  }));
+  const wsOrders = XLSX.utils.json_to_sheet(ordersRows);
+  XLSX.utils.book_append_sheet(wb, wsOrders, "Orders");
+
+  // Sales sheet
+  const salesRows = state.sales.map(s => ({
+    Date: s.date,
+    "SE Name": s.seName,
+    "Client ID": s.clientId,
+    Product: s.product,
+    "Unit Price": s.unitPrice,
+    "Qty (kg)": s.qtyKg,
+    "Qty (portion)": s.qtyPortion,
+    Expected: s.expected,
+    Actual: s.actual,
+    Commission: s.commission,
+    Discrepancy: s.discrepancy,
+    "Total To Pay": s.totalToPay,
+    Advances: s.advances
+  }));
+  const wsSales = XLSX.utils.json_to_sheet(salesRows);
+  XLSX.utils.book_append_sheet(wb, wsSales, "Sales");
+
+  const date = globalDate.value || todayISO();
+  const se = (seName.value.trim() || "SE").replace(/[^a-z0-9_-]+/gi,"_");
+  const filename = `${se}_${date}_DailyRecords.xlsx`;
+
+  XLSX.writeFile(wb, filename);
+}
+
+/* =========================
+   Events
+========================= */
+mode.addEventListener("change", () => {
+  setModeUI();
+  // reset form warnings/errors on mode switch
+  setText("formWarn", "");
+  setText("formError", "");
+});
+
+recordBtn.addEventListener("click", () => {
+  setText("formWarn", "");
+  setText("formError", "");
+
+  const m = mode.value;
+  let err = "";
+  if(m === "newClient") err = recordNewClient();
+  else if(m === "order") err = recordOrder();
+  else err = recordSale();
+
+  if(err){
+    setText("formError", err);
+    return;
+  }
+
+  // successful record -> gentle feedback
+  setText("formWarn", "Recorded successfully.");
+});
+
+resetBtn.addEventListener("click", () => resetForm());
+backBtn.addEventListener("click", () => goBack());
+exportBtn.addEventListener("click", () => exportXLSX());
+
+// New client reactive
+ncDistrict.addEventListener("change", () => {
+  updateParishUI();
+  updateClientIdPrefix();
+});
+ncType.addEventListener("change", () => updateClientIdPrefix());
+ncIndDigit.addEventListener("change", () => updateClientIdPrefix());
+ncLast3.addEventListener("input", () => {
+  // keep only digits
+  ncLast3.value = ncLast3.value.replace(/\D/g,"").slice(0,3);
+  updateFullClientId();
+});
+
+saleClientId.addEventListener("input", () => updateSalePriceAndCalcs());
+saleProduct.addEventListener("change", () => {
+  // when product changes, resync using whichever field user last edited (we’ll default to kg->portion)
+  updateSalePriceAndCalcs();
+  if(saleQtyKg.value !== ""){
+    syncPortionFromKg();
+  }else if(saleQtyPortion.value !== ""){
+    syncKgFromPortion();
+  }else{
+    updateSalePriceAndCalcs();
+  }
+});
+
+saleQtyKg.addEventListener("input", () => {
+  // if user types kg, compute portions
+  syncPortionFromKg();
+});
+saleQtyPortion.addEventListener("input", () => {
+  // if user types portion, compute kg
+  syncKgFromPortion();
+});
+saleActual.addEventListener("input", () => updateSalePriceAndCalcs());
+
+/* =========================
+   Init
+========================= */
+function init(){
+  loadState();
+
+  // default dates
+  globalDate.value = todayISO();
+  ordDate.value = todayISO();
+  ordDeliveryDate.value = todayISO();
+  ncEnrollDate.value = todayISO();
+
+  // parish UI default
+  updateParishUI();
+
+  // client ID prefix defaults
+  updateClientIdPrefix();
+  updateFullClientId();
+
+  // rebuild datalist from saved clients
+  rebuildClientIdDatalist();
+
+  // render tables
+  renderAll();
+
+  // sale defaults
+  updateSalePriceAndCalcs();
+
+  // show correct form
+  setModeUI();
+}
+init();
+</script>
+</body>
+</html>
