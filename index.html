@@ -287,6 +287,10 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <label for="ordDeliveryDate">Date of Delivery</label>
         <input id="ordDeliveryDate" type="date" />
 
+        <!-- ADDED: Time of Delivery -->
+        <label for="ordDeliveryTime">Time of Delivery</label>
+        <input id="ordDeliveryTime" type="time" />
+
         <label for="ordLocation">Location of Delivery</label>
         <input id="ordLocation" type="text" placeholder="Type location" />
 
@@ -382,8 +386,9 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="clientsTable">
           <thead>
             <tr>
-              <th>Date</th>
+              <!-- CHANGED: SE Name first -->
               <th>SE Name</th>
+              <th>Date</th>
               <th>Client ID</th>
               <th>Client Name</th>
               <th>District</th>
@@ -408,13 +413,15 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="ordersTable">
           <thead>
             <tr>
-              <th>Date</th>
+              <!-- CHANGED: SE Name first + ADDED Time of Delivery after Date of Delivery -->
               <th>SE Name</th>
+              <th>Date</th>
               <th>Client ID</th>
               <th>Blank 1</th>
               <th>Blank 2</th>
               <th>Date of Order</th>
               <th>Date of Delivery</th>
+              <th>Time of Delivery</th>
               <th>Location</th>
               <th>Product</th>
               <th>Quantity</th>
@@ -433,8 +440,9 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="salesTable">
           <thead>
             <tr>
-              <th>Date</th>
+              <!-- CHANGED: SE Name first -->
               <th>SE Name</th>
+              <th>Date</th>
               <th>Client ID</th>
               <th>Product</th>
               <th>Unit Price</th>
@@ -612,6 +620,9 @@ const ncEnrollDate = document.getElementById("ncEnrollDate");
 const ordClientId = document.getElementById("ordClientId");
 const ordDate = document.getElementById("ordDate");
 const ordDeliveryDate = document.getElementById("ordDeliveryDate");
+// ADDED:
+const ordDeliveryTime = document.getElementById("ordDeliveryTime");
+
 const ordLocation = document.getElementById("ordLocation");
 const ordProduct = document.getElementById("ordProduct");
 const ordQty = document.getElementById("ordQty");
@@ -847,6 +858,10 @@ function recordOrder(){
   if(!dOrder) return "Please choose Date of Order.";
   if(!dDel) return "Please choose Date of Delivery.";
 
+  // ADDED:
+  const tDel = ordDeliveryTime.value;
+  if(!tDel) return "Please choose Time of Delivery.";
+
   const loc = ordLocation.value.trim();
   if(!loc) return "Please enter Location of Delivery.";
 
@@ -862,6 +877,8 @@ function recordOrder(){
     blank2: "",   // always empty
     dateOfOrder: dOrder,
     dateOfDelivery: dDel,
+    // ADDED:
+    timeOfDelivery: tDel,
     location: loc,
     product: prod,
     quantity: toNumber(qty)
@@ -936,6 +953,8 @@ function resetForm(){
     ordClientId.value = "";
     ordDate.value = todayISO();
     ordDeliveryDate.value = todayISO();
+    // ADDED:
+    ordDeliveryTime.value = "";
     ordLocation.value = "";
     ordProduct.value = "Fresh tofu (kg)";
     ordQty.value = "";
@@ -1007,8 +1026,9 @@ function renderClients(){
   state.clients.forEach((c, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${c.date}</td>
+      <!-- CHANGED: SE Name first -->
       <td>${escapeHtml(c.seName)}</td>
+      <td>${c.date}</td>
       <td>${escapeHtml(c.clientId)}</td>
       <td>${escapeHtml(c.clientName)}</td>
       <td>${escapeHtml(c.district)}</td>
@@ -1035,13 +1055,15 @@ function renderOrders(){
   state.orders.forEach((o, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${o.date}</td>
+      <!-- CHANGED: SE Name first + ADDED timeOfDelivery -->
       <td>${escapeHtml(o.seName)}</td>
+      <td>${o.date}</td>
       <td>${escapeHtml(o.clientId)}</td>
       <td></td>
       <td></td>
       <td>${escapeHtml(o.dateOfOrder)}</td>
       <td>${escapeHtml(o.dateOfDelivery)}</td>
+      <td>${escapeHtml(o.timeOfDelivery || "")}</td>
       <td>${escapeHtml(o.location)}</td>
       <td>${escapeHtml(o.product)}</td>
       <td>${escapeHtml(String(o.quantity))}</td>
@@ -1061,8 +1083,9 @@ function renderSales(){
   state.sales.forEach((s, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${s.date}</td>
+      <!-- CHANGED: SE Name first -->
       <td>${escapeHtml(s.seName)}</td>
+      <td>${s.date}</td>
       <td>${escapeHtml(s.clientId)}</td>
       <td>${escapeHtml(s.product)}</td>
       <td>${escapeHtml(String(s.unitPrice))}</td>
@@ -1104,9 +1127,10 @@ function exportXLSX(){
 
   const wb = XLSX.utils.book_new();
 
+  // CHANGED: SE Name first
   const clientsRows = state.clients.map(c => ({
-    Date: c.date,
     "SE Name": c.seName,
+    Date: c.date,
     "Client ID": c.clientId,
     "Client Name": c.clientName,
     District: c.district,
@@ -1119,23 +1143,26 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
 
+  // CHANGED: SE Name first + ADDED Time of Delivery
   const ordersRows = state.orders.map(o => ({
-    Date: o.date,
     "SE Name": o.seName,
+    Date: o.date,
     "Client ID": o.clientId,
     "Blank 1": "",
     "Blank 2": "",
     "Date of Order": o.dateOfOrder,
     "Date of Delivery": o.dateOfDelivery,
+    "Time of Delivery": o.timeOfDelivery || "",
     Location: o.location,
     Product: o.product,
     Quantity: o.quantity
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
 
+  // CHANGED: SE Name first
   const salesRows = state.sales.map(s => ({
-    Date: s.date,
     "SE Name": s.seName,
+    Date: s.date,
     "Client ID": s.clientId,
     Product: s.product,
     "Unit Price": s.unitPrice,
@@ -1234,6 +1261,9 @@ function init(){
   globalDate.value = todayISO();
   ordDate.value = todayISO();
   ordDeliveryDate.value = todayISO();
+  // ADDED:
+  ordDeliveryTime.value = "";
+
   ncEnrollDate.value = todayISO();
 
   updateParishUI();
