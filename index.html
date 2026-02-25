@@ -174,6 +174,20 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
       <!-- NEW CLIENT FORM -->
       <div id="newClientForm">
+
+        <!-- ORDER (as requested):
+             District
+             Subcounty
+             Parish (dropdown if Hoima)
+             Client type
+             Client Id
+             Client name
+             Level
+             Contact
+             Status
+             Enrollment date
+        -->
+
         <label for="ncDistrict">District</label>
         <select id="ncDistrict">
           <option value="Hoima">Hoima</option>
@@ -182,9 +196,32 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option value="Other">Other</option>
         </select>
 
-        <!-- ADDED: Subcounty -->
         <label for="ncSubcounty">Subcounty</label>
         <input id="ncSubcounty" type="text" placeholder="Type subcounty" />
+
+        <label id="parishLabel">Parish</label>
+
+        <select id="ncParishHoima" style="display:none;">
+          <option value="">Select ward (Hoima)</option>
+          <option>Kasingo ward</option>
+          <option>Kihuukya ward</option>
+          <option>Kiduuma ward</option>
+          <option>Kibingo ward</option>
+          <option>Karongo ward</option>
+          <option>Bujuura ward</option>
+          <option>Kyesiiga ward</option>
+          <option>Kihombooza ward</option>
+          <option>Western ward Hoima</option>
+          <option>Kicwamba ward</option>
+          <option>Kyentale ward</option>
+          <option>Nyakambugu ward</option>
+          <option>Bwikya ward</option>
+          <option>Northern ward Hoima</option>
+          <option>Southern ward Hoima</option>
+          <option>Central ward Hoima</option>
+        </select>
+
+        <input id="ncParishText" type="text" style="display:none;" placeholder="Type parish" />
 
         <label for="ncType">Client Type</label>
         <select id="ncType">
@@ -233,30 +270,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option value="N+3">N+3</option>
         </select>
         <p class="small">Auto-set by type (Retailer→N+1, School/Restaurant/Institution→N+2, Individual→N+3) but editable.</p>
-
-        <label id="parishLabel">Parish</label>
-
-        <select id="ncParishHoima" style="display:none;">
-          <option value="">Select ward (Hoima)</option>
-          <option>Kasingo ward</option>
-          <option>Kihuukya ward</option>
-          <option>Kiduuma ward</option>
-          <option>Kibingo ward</option>
-          <option>Karongo ward</option>
-          <option>Bujuura ward</option>
-          <option>Kyesiiga ward</option>
-          <option>Kihombooza ward</option>
-          <option>Western ward Hoima</option>
-          <option>Kicwamba ward</option>
-          <option>Kyentale ward</option>
-          <option>Nyakambugu ward</option>
-          <option>Bwikya ward</option>
-          <option>Northern ward Hoima</option>
-          <option>Southern ward Hoima</option>
-          <option>Central ward Hoima</option>
-        </select>
-
-        <input id="ncParishText" type="text" style="display:none;" placeholder="Type parish" />
 
         <label for="ncContact">Contact</label>
         <input id="ncContact" type="text" placeholder="Phone / name / contact info" />
@@ -387,7 +400,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="clientsTable">
           <thead>
             <tr>
-              <!-- CHANGED (Clients only): requested order -->
               <th>Date</th>
               <th>SE Name</th>
               <th>Client ID</th>
@@ -615,7 +627,7 @@ const formWarn = document.getElementById("formWarn");
 
 // New client inputs
 const ncDistrict = document.getElementById("ncDistrict");
-const ncSubcounty = document.getElementById("ncSubcounty"); // ADDED
+const ncSubcounty = document.getElementById("ncSubcounty");
 const ncType = document.getElementById("ncType");
 const ncIndDigitWrap = document.getElementById("individualDigitWrap");
 const ncIndDigit = document.getElementById("ncIndDigit");
@@ -803,16 +815,16 @@ function recordNewClient(){
   if(err) return err;
 
   const district = ncDistrict.value;
+
   const subcounty = ncSubcounty.value.trim();
   if(!subcounty) return "Please type Subcounty.";
 
   const type = ncType.value;
+
   const prefix = ncPrefix.value.trim();
   const last3 = ncLast3.value.trim();
-
   if(!/^\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
   if(!isValid3Digits(last3)) return "Please enter the last 3 digits (XXX) as exactly 3 numbers (e.g., 001).";
-
   const clientId = prefix + last3;
 
   const clientName = ncClientName.value.trim();
@@ -877,7 +889,6 @@ function recordOrder(){
 
   const tDelRaw = ordDeliveryTime.value;
   if(!tDelRaw) return "Please choose Time of Delivery.";
-
   const tDel = toAmPm(tDelRaw);
   if(!tDel) return "Time of Delivery is not valid.";
 
@@ -896,7 +907,7 @@ function recordOrder(){
     blank2: "",
     dateOfOrder: dOrder,
     dateOfDelivery: dDel,
-    timeOfDelivery: tDel, // "10:00PM"
+    timeOfDelivery: tDel,
     location: loc,
     product: prod,
     quantity: toNumber(qty)
@@ -960,7 +971,7 @@ function resetForm(){
     ncLast3.value = "";
     ncClientName.value = "";
     ncContact.value = "";
-    ncSubcounty.value = ""; // ADDED
+    ncSubcounty.value = "";
     ncParishHoima.value = "";
     ncParishText.value = "";
     if(ncType.value !== "Individual"){
@@ -1045,7 +1056,6 @@ function renderClients(){
   state.clients.forEach((c, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <!-- CHANGED (Clients only): requested order -->
       <td>${c.date}</td>
       <td>${escapeHtml(c.seName)}</td>
       <td>${escapeHtml(c.clientId)}</td>
@@ -1148,7 +1158,6 @@ function exportXLSX(){
 
   const wb = XLSX.utils.book_new();
 
-  // CHANGED (Clients only): requested order + Subcounty
   const clientsRows = state.clients.map(c => ({
     Date: c.date,
     "SE Name": c.seName,
@@ -1261,7 +1270,6 @@ saleProduct.addEventListener("change", () => {
   }
 });
 
-// manual override unit price
 saleUnitPrice.addEventListener("input", () => {
   salePriceOverridden = true;
   updateSaleCalcs();
