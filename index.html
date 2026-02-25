@@ -182,6 +182,10 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option value="Other">Other</option>
         </select>
 
+        <!-- ADDED: Subcounty -->
+        <label for="ncSubcounty">Subcounty</label>
+        <input id="ncSubcounty" type="text" placeholder="Type subcounty" />
+
         <label for="ncType">Client Type</label>
         <select id="ncType">
           <option value="School">School</option>
@@ -276,7 +280,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <input id="ordClientId" list="clientIdList" placeholder="Choose or type Client ID" />
         <datalist id="clientIdList"></datalist>
 
-        <!-- Blank 1 & Blank 2 are NOT shown in the form -->
         <p class="small">
           Note: Blank 1 and Blank 2 columns will appear empty in the Orders table and XLSX export.
         </p>
@@ -287,7 +290,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <label for="ordDeliveryDate">Date of Delivery</label>
         <input id="ordDeliveryDate" type="date" />
 
-        <!-- Time input stays type="time" (browser picker). We'll DISPLAY it as AM/PM in table/export -->
         <label for="ordDeliveryTime">Time of Delivery</label>
         <input id="ordDeliveryTime" type="time" />
 
@@ -336,7 +338,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         </div>
         <p class="small">For tofu: 1 portion = 1 kg. Kikalayi: 0.04 kg/portion. Skewers: 0.045 kg/portion.</p>
 
-        <!-- Emphasized Financial Data block -->
         <div class="financial-card">
           <div class="financial-title">Financial Data</div>
 
@@ -386,17 +387,19 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="clientsTable">
           <thead>
             <tr>
-              <th>SE Name</th>
+              <!-- CHANGED (Clients only): requested order -->
               <th>Date</th>
+              <th>SE Name</th>
               <th>Client ID</th>
-              <th>Client Name</th>
-              <th>District</th>
-              <th>Parish</th>
-              <th>Client Type</th>
+              <th>Client name</th>
+              <th>Client type</th>
               <th>Level</th>
+              <th>District</th>
+              <th>Subcounty</th>
+              <th>Parish</th>
               <th>Contact</th>
               <th>Status</th>
-              <th>Enrollment Date</th>
+              <th>Enrollment date</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -520,7 +523,7 @@ function show(el){ el.style.display = ""; }
 function hide(el){ el.style.display = "none"; }
 function isValid3Digits(s){ return /^[0-9]{3}$/.test(String(s || "").trim()); }
 
-// ADDED: convert "HH:MM" -> "H:MMAM"/"H:MMPM" (no space)
+// "HH:MM" -> "H:MMAM"/"H:MMPM" (no space)
 function toAmPm(hhmm){
   const t = String(hhmm || "").trim();
   const m = t.match(/^(\d{1,2}):(\d{2})$/);
@@ -612,6 +615,7 @@ const formWarn = document.getElementById("formWarn");
 
 // New client inputs
 const ncDistrict = document.getElementById("ncDistrict");
+const ncSubcounty = document.getElementById("ncSubcounty"); // ADDED
 const ncType = document.getElementById("ncType");
 const ncIndDigitWrap = document.getElementById("individualDigitWrap");
 const ncIndDigit = document.getElementById("ncIndDigit");
@@ -799,6 +803,9 @@ function recordNewClient(){
   if(err) return err;
 
   const district = ncDistrict.value;
+  const subcounty = ncSubcounty.value.trim();
+  if(!subcounty) return "Please type Subcounty.";
+
   const type = ncType.value;
   const prefix = ncPrefix.value.trim();
   const last3 = ncLast3.value.trim();
@@ -840,10 +847,11 @@ function recordNewClient(){
     seName: seName.value.trim(),
     clientId,
     clientName,
-    district,
-    parish,
     clientType: type,
     level,
+    district,
+    subcounty,
+    parish,
     contact,
     status,
     enrollmentDate: enrollDate
@@ -870,7 +878,6 @@ function recordOrder(){
   const tDelRaw = ordDeliveryTime.value;
   if(!tDelRaw) return "Please choose Time of Delivery.";
 
-  // CHANGED: store formatted AM/PM like 10:00PM
   const tDel = toAmPm(tDelRaw);
   if(!tDel) return "Time of Delivery is not valid.";
 
@@ -889,8 +896,7 @@ function recordOrder(){
     blank2: "",
     dateOfOrder: dOrder,
     dateOfDelivery: dDel,
-    // stored as AM/PM string:
-    timeOfDelivery: tDel,
+    timeOfDelivery: tDel, // "10:00PM"
     location: loc,
     product: prod,
     quantity: toNumber(qty)
@@ -954,6 +960,7 @@ function resetForm(){
     ncLast3.value = "";
     ncClientName.value = "";
     ncContact.value = "";
+    ncSubcounty.value = ""; // ADDED
     ncParishHoima.value = "";
     ncParishText.value = "";
     if(ncType.value !== "Individual"){
@@ -1031,20 +1038,23 @@ function escapeHtml(str){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[m]));
 }
+
 function renderClients(){
   const tbody = document.querySelector("#clientsTable tbody");
   tbody.innerHTML = "";
   state.clients.forEach((c, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(c.seName)}</td>
+      <!-- CHANGED (Clients only): requested order -->
       <td>${c.date}</td>
+      <td>${escapeHtml(c.seName)}</td>
       <td>${escapeHtml(c.clientId)}</td>
       <td>${escapeHtml(c.clientName)}</td>
-      <td>${escapeHtml(c.district)}</td>
-      <td>${escapeHtml(c.parish)}</td>
       <td>${escapeHtml(c.clientType)}</td>
       <td>${escapeHtml(c.level)}</td>
+      <td>${escapeHtml(c.district)}</td>
+      <td>${escapeHtml(c.subcounty || "")}</td>
+      <td>${escapeHtml(c.parish)}</td>
       <td>${escapeHtml(c.contact || "")}</td>
       <td>${escapeHtml(c.status || "")}</td>
       <td>${escapeHtml(c.enrollmentDate || "")}</td>
@@ -1059,6 +1069,7 @@ function renderClients(){
     tbody.appendChild(tr);
   });
 }
+
 function renderOrders(){
   const tbody = document.querySelector("#ordersTable tbody");
   tbody.innerHTML = "";
@@ -1072,7 +1083,6 @@ function renderOrders(){
       <td></td>
       <td>${escapeHtml(o.dateOfOrder)}</td>
       <td>${escapeHtml(o.dateOfDelivery)}</td>
-      <!-- Displays like 10:00PM -->
       <td>${escapeHtml(o.timeOfDelivery || "")}</td>
       <td>${escapeHtml(o.location)}</td>
       <td>${escapeHtml(o.product)}</td>
@@ -1087,6 +1097,7 @@ function renderOrders(){
     tbody.appendChild(tr);
   });
 }
+
 function renderSales(){
   const tbody = document.querySelector("#salesTable tbody");
   tbody.innerHTML = "";
@@ -1116,6 +1127,7 @@ function renderSales(){
     tbody.appendChild(tr);
   });
 }
+
 function renderAll(){
   renderClients();
   renderOrders();
@@ -1136,22 +1148,23 @@ function exportXLSX(){
 
   const wb = XLSX.utils.book_new();
 
+  // CHANGED (Clients only): requested order + Subcounty
   const clientsRows = state.clients.map(c => ({
-    "SE Name": c.seName,
     Date: c.date,
+    "SE Name": c.seName,
     "Client ID": c.clientId,
-    "Client Name": c.clientName,
-    District: c.district,
-    Parish: c.parish,
-    "Client Type": c.clientType,
+    "Client name": c.clientName,
+    "Client type": c.clientType,
     Level: c.level,
+    District: c.district,
+    Subcounty: c.subcounty || "",
+    Parish: c.parish,
     Contact: c.contact || "",
     Status: c.status || "",
-    "Enrollment Date": c.enrollmentDate || ""
+    "Enrollment date": c.enrollmentDate || ""
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
 
-  // timeOfDelivery already stored as "10:00PM"
   const ordersRows = state.orders.map(o => ({
     "SE Name": o.seName,
     Date: o.date,
