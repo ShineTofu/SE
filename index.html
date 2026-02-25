@@ -287,7 +287,7 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <label for="ordDeliveryDate">Date of Delivery</label>
         <input id="ordDeliveryDate" type="date" />
 
-        <!-- ADDED: Time of Delivery -->
+        <!-- Time input stays type="time" (browser picker). We'll DISPLAY it as AM/PM in table/export -->
         <label for="ordDeliveryTime">Time of Delivery</label>
         <input id="ordDeliveryTime" type="time" />
 
@@ -386,7 +386,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="clientsTable">
           <thead>
             <tr>
-              <!-- CHANGED: SE Name first -->
               <th>SE Name</th>
               <th>Date</th>
               <th>Client ID</th>
@@ -413,7 +412,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="ordersTable">
           <thead>
             <tr>
-              <!-- CHANGED: SE Name first + ADDED Time of Delivery after Date of Delivery -->
               <th>SE Name</th>
               <th>Date</th>
               <th>Client ID</th>
@@ -440,7 +438,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="salesTable">
           <thead>
             <tr>
-              <!-- CHANGED: SE Name first -->
               <th>SE Name</th>
               <th>Date</th>
               <th>Client ID</th>
@@ -522,6 +519,20 @@ function setText(id, text){ document.getElementById(id).textContent = text || ""
 function show(el){ el.style.display = ""; }
 function hide(el){ el.style.display = "none"; }
 function isValid3Digits(s){ return /^[0-9]{3}$/.test(String(s || "").trim()); }
+
+// ADDED: convert "HH:MM" -> "H:MMAM"/"H:MMPM" (no space)
+function toAmPm(hhmm){
+  const t = String(hhmm || "").trim();
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return "";
+  let h = Number(m[1]);
+  const min = m[2];
+  if(!Number.isFinite(h)) return "";
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if(h === 0) h = 12;
+  return `${h}:${min}${suffix}`;
+}
 
 function districtDigit(district){
   if(district === "Hoima") return "1";
@@ -620,9 +631,7 @@ const ncEnrollDate = document.getElementById("ncEnrollDate");
 const ordClientId = document.getElementById("ordClientId");
 const ordDate = document.getElementById("ordDate");
 const ordDeliveryDate = document.getElementById("ordDeliveryDate");
-// ADDED:
 const ordDeliveryTime = document.getElementById("ordDeliveryTime");
-
 const ordLocation = document.getElementById("ordLocation");
 const ordProduct = document.getElementById("ordProduct");
 const ordQty = document.getElementById("ordQty");
@@ -858,9 +867,12 @@ function recordOrder(){
   if(!dOrder) return "Please choose Date of Order.";
   if(!dDel) return "Please choose Date of Delivery.";
 
-  // ADDED:
-  const tDel = ordDeliveryTime.value;
-  if(!tDel) return "Please choose Time of Delivery.";
+  const tDelRaw = ordDeliveryTime.value;
+  if(!tDelRaw) return "Please choose Time of Delivery.";
+
+  // CHANGED: store formatted AM/PM like 10:00PM
+  const tDel = toAmPm(tDelRaw);
+  if(!tDel) return "Time of Delivery is not valid.";
 
   const loc = ordLocation.value.trim();
   if(!loc) return "Please enter Location of Delivery.";
@@ -873,11 +885,11 @@ function recordOrder(){
     date: globalDate.value,
     seName: seName.value.trim(),
     clientId: cid,
-    blank1: "",   // always empty
-    blank2: "",   // always empty
+    blank1: "",
+    blank2: "",
     dateOfOrder: dOrder,
     dateOfDelivery: dDel,
-    // ADDED:
+    // stored as AM/PM string:
     timeOfDelivery: tDel,
     location: loc,
     product: prod,
@@ -953,7 +965,6 @@ function resetForm(){
     ordClientId.value = "";
     ordDate.value = todayISO();
     ordDeliveryDate.value = todayISO();
-    // ADDED:
     ordDeliveryTime.value = "";
     ordLocation.value = "";
     ordProduct.value = "Fresh tofu (kg)";
@@ -1026,7 +1037,6 @@ function renderClients(){
   state.clients.forEach((c, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <!-- CHANGED: SE Name first -->
       <td>${escapeHtml(c.seName)}</td>
       <td>${c.date}</td>
       <td>${escapeHtml(c.clientId)}</td>
@@ -1055,7 +1065,6 @@ function renderOrders(){
   state.orders.forEach((o, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <!-- CHANGED: SE Name first + ADDED timeOfDelivery -->
       <td>${escapeHtml(o.seName)}</td>
       <td>${o.date}</td>
       <td>${escapeHtml(o.clientId)}</td>
@@ -1063,6 +1072,7 @@ function renderOrders(){
       <td></td>
       <td>${escapeHtml(o.dateOfOrder)}</td>
       <td>${escapeHtml(o.dateOfDelivery)}</td>
+      <!-- Displays like 10:00PM -->
       <td>${escapeHtml(o.timeOfDelivery || "")}</td>
       <td>${escapeHtml(o.location)}</td>
       <td>${escapeHtml(o.product)}</td>
@@ -1083,7 +1093,6 @@ function renderSales(){
   state.sales.forEach((s, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <!-- CHANGED: SE Name first -->
       <td>${escapeHtml(s.seName)}</td>
       <td>${s.date}</td>
       <td>${escapeHtml(s.clientId)}</td>
@@ -1127,7 +1136,6 @@ function exportXLSX(){
 
   const wb = XLSX.utils.book_new();
 
-  // CHANGED: SE Name first
   const clientsRows = state.clients.map(c => ({
     "SE Name": c.seName,
     Date: c.date,
@@ -1143,7 +1151,7 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
 
-  // CHANGED: SE Name first + ADDED Time of Delivery
+  // timeOfDelivery already stored as "10:00PM"
   const ordersRows = state.orders.map(o => ({
     "SE Name": o.seName,
     Date: o.date,
@@ -1159,7 +1167,6 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
 
-  // CHANGED: SE Name first
   const salesRows = state.sales.map(s => ({
     "SE Name": s.seName,
     Date: s.date,
@@ -1232,7 +1239,6 @@ saleClientId.addEventListener("input", () => {
 });
 saleProduct.addEventListener("change", () => {
   applyDefaultSalePriceIfNotOverridden();
-  // keep conversion consistent
   if(saleQtyKg.value !== ""){
     syncPortionFromKg();
   }else if(saleQtyPortion.value !== ""){
@@ -1261,7 +1267,6 @@ function init(){
   globalDate.value = todayISO();
   ordDate.value = todayISO();
   ordDeliveryDate.value = todayISO();
-  // ADDED:
   ordDeliveryTime.value = "";
 
   ncEnrollDate.value = todayISO();
@@ -1273,7 +1278,6 @@ function init(){
   rebuildClientIdDatalist();
   renderAll();
 
-  // default sale price (not overridden)
   salePriceOverridden = false;
   applyDefaultSalePriceIfNotOverridden();
   updateSaleCalcs();
