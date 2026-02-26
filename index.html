@@ -303,8 +303,8 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="ordProduct">Type of Product</label>
         <select id="ordProduct">
-          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
           <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
           <option value="Kikalayi (kg)">Kikalayi (kg)</option>
           <option value="Kikalayi (portion)">Kikalayi (portion)</option>
           <option value="Skewers (portion)">Skewers (portion)</option>
@@ -312,6 +312,34 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="ordQty">Quantity</label>
         <input id="ordQty" type="number" step="0.001" placeholder="Enter quantity" />
+
+        <label for="ordUnitPrice">Unit price (UGX) (auto, but editable)</label>
+        <input id="ordUnitPrice" type="number" step="1" />
+
+        <label for="ordDiscType">Type of discount</label>
+        <select id="ordDiscType">
+          <option value="%">%</option>
+          <option value="UGX">UGX</option>
+        </select>
+
+        <div class="flex">
+          <div style="flex:1; min-width:220px;">
+            <label for="ordDiscPct">Discount (%)</label>
+            <input id="ordDiscPct" type="number" step="0.01" placeholder="Enter discount %" />
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label for="ordDiscUgx">Discount (UGX)</label>
+            <input id="ordDiscUgx" type="number" step="1" placeholder="Enter discount UGX" />
+          </div>
+        </div>
+
+        <!-- Indicative summary (not in table) -->
+        <div class="financial-card" style="margin-top:6px;">
+          <div class="financial-title">Order Price Summary (Indicative)</div>
+          <div class="small">Price before discount: <span id="ordBefore">0</span> UGX</div>
+          <div class="small">Discount: <span id="ordDiscShow">0</span></div>
+          <div class="small">Price after discount: <span id="ordAfter">0</span> UGX</div>
+        </div>
       </div>
 
       <!-- SALE FORM -->
@@ -321,8 +349,8 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="saleProduct">Product</label>
         <select id="saleProduct">
-          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
           <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
           <option value="Kikalayi (kg)">Kikalayi (kg)</option>
           <option value="Kikalayi (portion)">Kikalayi (portion)</option>
           <option value="Skewers (portion)">Skewers (portion)</option>
@@ -418,17 +446,21 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         <table id="ordersTable">
           <thead>
             <tr>
-              <th>SE Name</th>
               <th>Date</th>
+              <th>SE Name</th>
               <th>Client ID</th>
               <th>Blank 1</th>
               <th>Blank 2</th>
-              <th>Date of Order</th>
-              <th>Date of Delivery</th>
-              <th>Time of Delivery</th>
-              <th>Location</th>
-              <th>Product</th>
+              <th>Date of order</th>
+              <th>Date of delivery</th>
+              <th>Time of delivery</th>
+              <th>Location of delivery</th>
+              <th>Type of product</th>
               <th>Quantity</th>
+              <th>Unit price (UGX)</th>
+              <th>Type of discount</th>
+              <th>Discount (%)</th>
+              <th>Discount (UGX)</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -658,6 +690,13 @@ const ordDeliveryTime = document.getElementById("ordDeliveryTime");
 const ordLocation = document.getElementById("ordLocation");
 const ordProduct = document.getElementById("ordProduct");
 const ordQty = document.getElementById("ordQty");
+const ordUnitPrice = document.getElementById("ordUnitPrice");
+const ordDiscType = document.getElementById("ordDiscType");
+const ordDiscPct = document.getElementById("ordDiscPct");
+const ordDiscUgx = document.getElementById("ordDiscUgx");
+const ordBefore = document.getElementById("ordBefore");
+const ordDiscShow = document.getElementById("ordDiscShow");
+const ordAfter = document.getElementById("ordAfter");
 
 // Sale inputs
 const saleClientId = document.getElementById("saleClientId");
@@ -738,7 +777,7 @@ function updateFullClientId(){
   const prefix = String(ncPrefix.value || "").trim(); // "C-12"
   const m = prefix.match(/^C-(\d{2})$/);
   if(m && /^[0-9]{0,3}$/.test(last3)){
-    const digits = (m[1] + last3).padEnd(5, ""); // partial while typing
+    const digits = (m[1] + last3).padEnd(5, "");
     ncClientId.value = `C-${digits}`;
   }else{
     ncClientId.value = "";
@@ -754,6 +793,75 @@ function rebuildClientIdDatalist(){
     opt.value = id;
     clientIdList.appendChild(opt);
   });
+}
+
+/* =========================
+   ORDER: Unit price + discount calculations
+========================= */
+let orderPriceOverridden = false;
+let orderDiscLock = false;
+
+function applyDefaultOrderPriceIfNotOverridden(){
+  if(orderPriceOverridden) return;
+  const cid = ordClientId.value.trim();
+  const prod = ordProduct.value;
+  ordUnitPrice.value = defaultUnitPrice(prod, cid);
+}
+
+function calcOrderBefore(){
+  const qty = toNumber(ordQty.value);
+  const price = toNumber(ordUnitPrice.value);
+  return round2(qty * price);
+}
+
+function updateOrderDiscountAndSummary(source){
+  if(orderDiscLock) return;
+  orderDiscLock = true;
+
+  const before = calcOrderBefore();
+  const type = ordDiscType.value;
+
+  let pct = toNumber(ordDiscPct.value);
+  let ugx = toNumber(ordDiscUgx.value);
+
+  if(before <= 0){
+    // nothing to calculate
+    ordBefore.textContent = "0";
+    ordDiscShow.textContent = "0";
+    ordAfter.textContent = "0";
+    orderDiscLock = false;
+    return;
+  }
+
+  if(type === "%"){
+    // percentage is the source (or keep pct), compute UGX
+    if(source === "ugx") {
+      // if user edited UGX while type is %, convert to %
+      pct = (ugx / before) * 100;
+      ordDiscPct.value = round2(pct);
+    }
+    ugx = (toNumber(ordDiscPct.value) / 100) * before;
+    ordDiscUgx.value = round2(ugx);
+  }else{
+    // UGX is the source, compute %
+    if(source === "pct") {
+      // if user edited % while type is UGX, convert to UGX
+      ugx = (pct / 100) * before;
+      ordDiscUgx.value = round2(ugx);
+    }
+    pct = (toNumber(ordDiscUgx.value) / before) * 100;
+    ordDiscPct.value = round2(pct);
+  }
+
+  const finalUgx = Math.max(0, before - toNumber(ordDiscUgx.value));
+  ordBefore.textContent = String(round2(before));
+  ordAfter.textContent = String(round2(finalUgx));
+
+  const showPct = round2(toNumber(ordDiscPct.value));
+  const showUgx = round2(toNumber(ordDiscUgx.value));
+  ordDiscShow.textContent = type === "%" ? `${showPct}% (${showUgx} UGX)` : `${showUgx} UGX (${showPct}%)`;
+
+  orderDiscLock = false;
 }
 
 /* =========================
@@ -901,8 +1009,17 @@ function recordOrder(){
   if(!loc) return "Please enter Location of Delivery.";
 
   const prod = ordProduct.value;
-  const qty = ordQty.value;
-  if(qty === "" || qty === null) return "Please enter Quantity.";
+
+  const qtyRaw = ordQty.value;
+  if(qtyRaw === "" || qtyRaw === null) return "Please enter Quantity.";
+  const qty = toNumber(qtyRaw);
+
+  const unitPrice = toNumber(ordUnitPrice.value);
+  if(unitPrice <= 0) return "Please enter Unit price (UGX).";
+
+  const discType = ordDiscType.value;
+  const discPct = round2(toNumber(ordDiscPct.value));
+  const discUgx = round2(toNumber(ordDiscUgx.value));
 
   state.orders.push({
     date: globalDate.value,
@@ -915,7 +1032,11 @@ function recordOrder(){
     timeOfDelivery: tDel,
     location: loc,
     product: prod,
-    quantity: toNumber(qty)
+    quantity: round2(qty),
+    unitPrice: round2(unitPrice),
+    discountType: discType,
+    discountPct: discPct,
+    discountUgx: discUgx
   });
 
   saveState();
@@ -989,11 +1110,18 @@ function resetForm(){
     ordDeliveryDate.value = todayISO();
     ordDeliveryTime.value = "";
     ordLocation.value = "";
-    ordProduct.value = "Fresh tofu (kg)";
+    ordProduct.value = "Fried tofu (kg)";
     ordQty.value = "";
+
+    orderPriceOverridden = false;
+    ordDiscType.value = "%";
+    ordDiscPct.value = "";
+    ordDiscUgx.value = "";
+    applyDefaultOrderPriceIfNotOverridden();
+    updateOrderDiscountAndSummary("type");
   }else{
     saleClientId.value = "";
-    saleProduct.value = "Fresh tofu (kg)";
+    saleProduct.value = "Fried tofu (kg)";
     saleQtyKg.value = "";
     saleQtyPortion.value = "";
     saleActual.value = "";
@@ -1089,8 +1217,8 @@ function renderOrders(){
   state.orders.forEach((o, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(o.seName)}</td>
       <td>${o.date}</td>
+      <td>${escapeHtml(o.seName)}</td>
       <td>${escapeHtml(o.clientId)}</td>
       <td></td>
       <td></td>
@@ -1100,6 +1228,10 @@ function renderOrders(){
       <td>${escapeHtml(o.location)}</td>
       <td>${escapeHtml(o.product)}</td>
       <td>${escapeHtml(String(o.quantity))}</td>
+      <td>${escapeHtml(String(o.unitPrice ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountType ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountPct ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountUgx ?? ""))}</td>
       <td></td>
     `;
     tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
@@ -1177,17 +1309,21 @@ function exportXLSX(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
 
   const ordersRows = state.orders.map(o => ({
-    "SE Name": o.seName,
     Date: o.date,
+    "SE Name": o.seName,
     "Client ID": o.clientId,
     "Blank 1": "",
     "Blank 2": "",
-    "Date of Order": o.dateOfOrder,
-    "Date of Delivery": o.dateOfDelivery,
-    "Time of Delivery": o.timeOfDelivery || "",
-    Location: o.location,
-    Product: o.product,
-    Quantity: o.quantity
+    "Date of order": o.dateOfOrder,
+    "Date of delivery": o.dateOfDelivery,
+    "Time of delivery": o.timeOfDelivery || "",
+    "Location of delivery": o.location,
+    "Type of product": o.product,
+    Quantity: o.quantity,
+    "Unit price (UGX)": o.unitPrice ?? "",
+    "Type of discount": o.discountType ?? "",
+    "Discount (%)": o.discountPct ?? "",
+    "Discount (UGX)": o.discountUgx ?? ""
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
 
@@ -1256,6 +1392,30 @@ ncLast3.addEventListener("input", () => {
   updateFullClientId();
 });
 
+// ORDER reactive
+ordClientId.addEventListener("input", () => {
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
+});
+ordProduct.addEventListener("change", () => {
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
+});
+ordQty.addEventListener("input", () => updateOrderDiscountAndSummary("type"));
+ordUnitPrice.addEventListener("input", () => {
+  orderPriceOverridden = true;
+  updateOrderDiscountAndSummary("type");
+});
+ordDiscType.addEventListener("change", () => updateOrderDiscountAndSummary("type"));
+ordDiscPct.addEventListener("input", () => {
+  if(ordDiscType.value === "%") updateOrderDiscountAndSummary("pct");
+  else updateOrderDiscountAndSummary("pct");
+});
+ordDiscUgx.addEventListener("input", () => {
+  if(ordDiscType.value === "UGX") updateOrderDiscountAndSummary("ugx");
+  else updateOrderDiscountAndSummary("ugx");
+});
+
 // SALE reactive
 saleClientId.addEventListener("input", () => {
   applyDefaultSalePriceIfNotOverridden();
@@ -1304,6 +1464,11 @@ function init(){
   salePriceOverridden = false;
   applyDefaultSalePriceIfNotOverridden();
   updateSaleCalcs();
+
+  orderPriceOverridden = false;
+  ordDiscType.value = "%";
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
 
   setModeUI();
 }
