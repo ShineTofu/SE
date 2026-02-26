@@ -65,7 +65,7 @@ input, select, textarea{
   font-family: inherit;
 }
 
-textarea{ resize: vertical; min-height: 90px; }
+textarea{ resize: vertical; min-height: 70px; }
 
 button{
   padding:10px 15px;
@@ -345,28 +345,52 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         </div>
       </div>
 
-      <!-- PAYMENT FORM (replaces Sale) -->
+      <!-- PAYMENT FORM (replaces SALE) -->
       <div id="paymentForm" style="display:none;">
         <label for="payClientId">Client ID (select or type)</label>
         <input id="payClientId" list="clientIdList" placeholder="Choose or type Client ID" />
 
         <label for="payOrderNumber">Order Number</label>
-        <input id="payOrderNumber" type="text" placeholder="Enter Order Number" />
+        <input id="payOrderNumber" type="text" placeholder="Enter order number" />
+
+        <label for="payProduct">Product</label>
+        <select id="payProduct">
+          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
+          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
+          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
+          <option value="Skewers (portion)">Skewers (portion)</option>
+        </select>
+
+        <label for="payUnitPrice">Unit Price (auto, but editable)</label>
+        <input id="payUnitPrice" type="number" step="1" />
+
+        <div class="flex">
+          <div style="flex:1; min-width:220px;">
+            <label for="payQtyKg">Quantity (kg)</label>
+            <input id="payQtyKg" type="number" step="0.001" placeholder="Enter kg" />
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label for="payQtyPortion">Quantity (portion)</label>
+            <input id="payQtyPortion" type="number" step="0.001" placeholder="Enter portions" />
+          </div>
+        </div>
+        <p class="small">For tofu: 1 portion = 1 kg. Kikalayi: 0.04 kg/portion. Skewers: 0.045 kg/portion.</p>
 
         <div class="financial-card">
           <div class="financial-title">Financial Data</div>
 
-          <label for="payExpected">Expected cash collected (auto)</label>
+          <label for="payExpected">Expected Cash Collected (auto)</label>
           <input id="payExpected" type="number" readonly />
 
-          <label for="payActual">Actual cash collected</label>
+          <label for="payActual">Actual Cash Collected (to be filled)</label>
           <input id="payActual" type="number" step="1" placeholder="Enter actual cash" />
 
           <label for="payDiscrepancy">Discrepancy (Expected - Actual) (auto)</label>
           <input id="payDiscrepancy" type="number" readonly />
 
           <label for="payComment">Comment</label>
-          <textarea id="payComment" placeholder="Write comment..."></textarea>
+          <textarea id="payComment" placeholder="Write a comment..."></textarea>
         </div>
       </div>
 
@@ -456,6 +480,10 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
               <th>Date</th>
               <th>Client ID</th>
               <th>Order Number</th>
+              <th>Product</th>
+              <th>Unit Price</th>
+              <th>Qty (kg)</th>
+              <th>Qty (portion)</th>
               <th>Expected</th>
               <th>Actual</th>
               <th>Discrepancy</th>
@@ -496,7 +524,8 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 ========================= */
 const STORAGE_KEY = "daily_se_tool_v2";
 
-let state = { clients: [], orders: [], payments: [] };
+// Keep existing "sales" storage but use it as "payments" (backward compatible)
+let state = { clients: [], orders: [], sales: [] };
 
 function loadState(){
   try{
@@ -505,10 +534,7 @@ function loadState(){
       const parsed = JSON.parse(raw);
       state.clients = Array.isArray(parsed.clients) ? parsed.clients : [];
       state.orders  = Array.isArray(parsed.orders)  ? parsed.orders  : [];
-      // backward compatibility: older versions used "sales"
-      if(Array.isArray(parsed.payments)) state.payments = parsed.payments;
-      else if(Array.isArray(parsed.sales)) state.payments = parsed.sales;
-      else state.payments = [];
+      state.sales   = Array.isArray(parsed.sales)   ? parsed.sales   : [];
     }
   }catch(e){
     console.warn("Failed to load state", e);
@@ -582,6 +608,12 @@ function autoLevelByType(type){
   if(type === "Individual") return "N+3";
   return "N+2";
 }
+function ratioKgPerPortion(product){
+  if(product === "Kikalayi (portion)" || product === "Kikalayi (kg)") return 0.04;
+  if(product === "Skewers (portion)") return 0.045;
+  if(product === "Fresh tofu (kg)" || product === "Fried tofu (kg)") return 1.0;
+  return 1.0;
+}
 function isRetailerClientId(clientId){
   const id = String(clientId || "").trim();
   return /^C-[0-3]2\d{3}$/.test(id);
@@ -601,11 +633,12 @@ function toNumber(x){
 }
 function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
 
-/* Expected cash for an order record: (qty * unitPrice) - discountUgx */
-function expectedFromOrder(order){
-  const before = toNumber(order.quantity) * toNumber(order.unitPrice);
-  const after = before - toNumber(order.discountUgx);
-  return round2(after);
+function expectedCash(product, unitPriceValue, qtyKg, qtyPortion){
+  const price = toNumber(unitPriceValue);
+  if(product.includes("(portion)")){
+    return price * (toNumber(qtyPortion) || 0);
+  }
+  return price * (toNumber(qtyKg) || 0);
 }
 
 /* =========================
@@ -668,6 +701,10 @@ const ordAfter = document.getElementById("ordAfter");
 // Payment inputs
 const payClientId = document.getElementById("payClientId");
 const payOrderNumber = document.getElementById("payOrderNumber");
+const payProduct = document.getElementById("payProduct");
+const payUnitPrice = document.getElementById("payUnitPrice");
+const payQtyKg = document.getElementById("payQtyKg");
+const payQtyPortion = document.getElementById("payQtyPortion");
 const payExpected = document.getElementById("payExpected");
 const payActual = document.getElementById("payActual");
 const payDiscrepancy = document.getElementById("payDiscrepancy");
@@ -822,23 +859,49 @@ function updateOrderDiscountAndSummary(source){
 }
 
 /* =========================
-   PAYMENT: Expected + discrepancy
+   PAYMENT: unit price + qty sync + financial calcs
 ========================= */
-function updatePaymentExpectedAndDiscrepancy(){
+let payLock = false;
+let payPriceOverridden = false;
+
+function applyDefaultPayPriceIfNotOverridden(){
+  if(payPriceOverridden) return;
   const cid = payClientId.value.trim();
-  const onum = payOrderNumber.value.trim();
-  let expected = 0;
+  const prod = payProduct.value;
+  payUnitPrice.value = defaultUnitPrice(prod, cid);
+}
 
-  if(cid && onum){
-    const match = state.orders.find(o => String(o.clientId) === cid && String(o.orderNumber || "") === onum);
-    if(match){
-      expected = expectedFromOrder(match);
-    }
-  }
+function updatePaymentCalcs(){
+  const prod = payProduct.value;
+  const kg = toNumber(payQtyKg.value);
+  const portion = toNumber(payQtyPortion.value);
 
-  payExpected.value = round2(expected);
+  const exp = expectedCash(prod, payUnitPrice.value, kg, portion);
+  payExpected.value = round2(exp);
+
   const actual = toNumber(payActual.value);
-  payDiscrepancy.value = round2(expected - actual);
+  const disc = exp - actual;
+  payDiscrepancy.value = round2(disc);
+}
+
+function syncPayKgFromPortion(){
+  if(payLock) return;
+  payLock = true;
+  const ratio = ratioKgPerPortion(payProduct.value);
+  const p = toNumber(payQtyPortion.value);
+  payQtyKg.value = round2(p * ratio);
+  payLock = false;
+  updatePaymentCalcs();
+}
+
+function syncPayPortionFromKg(){
+  if(payLock) return;
+  payLock = true;
+  const ratio = ratioKgPerPortion(payProduct.value);
+  const kg = toNumber(payQtyKg.value);
+  payQtyPortion.value = ratio === 0 ? "" : round2(kg / ratio);
+  payLock = false;
+  updatePaymentCalcs();
 }
 
 /* =========================
@@ -913,18 +976,6 @@ function recordNewClient(){
   return "";
 }
 
-/* Auto order number generator (not shown in Orders table) */
-function nextOrderNumber(){
-  const maxN = state.orders.reduce((mx, o) => {
-    const m = String(o.orderNumber || "").match(/^ORD-(\d{4})$/);
-    if(!m) return mx;
-    const n = Number(m[1]);
-    return Number.isFinite(n) ? Math.max(mx, n) : mx;
-  }, 0);
-  const next = maxN + 1;
-  return `ORD-${String(next).padStart(4,"0")}`;
-}
-
 function recordOrder(){
   const err = validateGlobal();
   if(err) return err;
@@ -973,8 +1024,7 @@ function recordOrder(){
     unitPrice: round2(unitPrice),
     discountType: discType,
     discountPct: discPct,
-    discountUgx: discUgx,
-    orderNumber: nextOrderNumber()
+    discountUgx: discUgx
   });
 
   saveState();
@@ -989,25 +1039,36 @@ function recordPayment(){
   const cid = payClientId.value.trim();
   if(!cid) return "Please select or type a Client ID.";
 
-  const onum = payOrderNumber.value.trim();
-  if(!onum) return "Please enter Order Number.";
+  const orderNo = payOrderNumber.value.trim();
+  if(!orderNo) return "Please enter Order Number.";
 
-  updatePaymentExpectedAndDiscrepancy();
+  const prod = payProduct.value;
 
-  const expected = toNumber(payExpected.value);
+  const kg = toNumber(payQtyKg.value);
+  const portion = toNumber(payQtyPortion.value);
+  if(kg === 0 && portion === 0){
+    return "Please enter a quantity in kg or portion.";
+  }
+
+  const price = toNumber(payUnitPrice.value);
+  const exp = toNumber(payExpected.value);
   const actual = toNumber(payActual.value);
   const disc = toNumber(payDiscrepancy.value);
-  const comment = payComment.value.trim();
+  const comment = payComment.value || "";
 
-  state.payments.push({
+  state.sales.push({
     date: globalDate.value,
     seName: seName.value.trim(),
     clientId: cid,
-    orderNumber: onum,
-    expected: round2(expected),
+    orderNumber: orderNo,
+    product: prod,
+    unitPrice: round2(price),
+    qtyKg: round2(kg),
+    qtyPortion: round2(portion),
+    expected: round2(exp),
     actual: round2(actual),
     discrepancy: round2(disc),
-    comment
+    comment: comment
   });
 
   saveState();
@@ -1049,10 +1110,14 @@ function resetForm(){
   }else{
     payClientId.value = "";
     payOrderNumber.value = "";
-    payExpected.value = "";
+    payProduct.value = "Fried tofu (kg)";
+    payQtyKg.value = "";
+    payQtyPortion.value = "";
     payActual.value = "";
-    payDiscrepancy.value = "";
     payComment.value = "";
+    payPriceOverridden = false;
+    applyDefaultPayPriceIfNotOverridden();
+    updatePaymentCalcs();
   }
 }
 
@@ -1083,7 +1148,7 @@ function resetOrdersTable(){
 function resetPaymentsTable(){
   const ok = confirm("Are you sure you want to delete ALL Payments records?");
   if(!ok) return;
-  state.payments = [];
+  state.sales = [];
   saveState();
   renderAll();
 }
@@ -1170,13 +1235,17 @@ function renderOrders(){
 function renderPayments(){
   const tbody = document.querySelector("#paymentsTable tbody");
   tbody.innerHTML = "";
-  state.payments.forEach((p, idx) => {
+  state.sales.forEach((p, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(p.seName)}</td>
-      <td>${escapeHtml(p.date)}</td>
+      <td>${p.date}</td>
       <td>${escapeHtml(p.clientId)}</td>
-      <td>${escapeHtml(p.orderNumber)}</td>
+      <td>${escapeHtml(p.orderNumber || "")}</td>
+      <td>${escapeHtml(p.product)}</td>
+      <td>${escapeHtml(String(p.unitPrice))}</td>
+      <td>${escapeHtml(String(p.qtyKg))}</td>
+      <td>${escapeHtml(String(p.qtyPortion))}</td>
       <td>${escapeHtml(String(p.expected))}</td>
       <td>${escapeHtml(String(p.actual))}</td>
       <td>${escapeHtml(String(p.discrepancy))}</td>
@@ -1184,7 +1253,7 @@ function renderPayments(){
       <td></td>
     `;
     tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
-      state.payments.splice(idx, 1);
+      state.sales.splice(idx, 1);
       saveState();
       renderAll();
     }));
@@ -1246,11 +1315,15 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
 
-  const paymentsRows = state.payments.map(p => ({
+  const paymentsRows = state.sales.map(p => ({
     "SE Name": p.seName,
     Date: p.date,
     "Client ID": p.clientId,
-    "Order Number": p.orderNumber,
+    "Order Number": p.orderNumber || "",
+    Product: p.product,
+    "Unit Price": p.unitPrice,
+    "Qty (kg)": p.qtyKg,
+    "Qty (portion)": p.qtyPortion,
     Expected: p.expected,
     Actual: p.actual,
     Discrepancy: p.discrepancy,
@@ -1325,9 +1398,27 @@ ordDiscPct.addEventListener("input", () => updateOrderDiscountAndSummary("pct"))
 ordDiscUgx.addEventListener("input", () => updateOrderDiscountAndSummary("ugx"));
 
 // PAYMENT reactive
-payClientId.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
-payOrderNumber.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
-payActual.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
+payClientId.addEventListener("input", () => {
+  applyDefaultPayPriceIfNotOverridden();
+  updatePaymentCalcs();
+});
+payProduct.addEventListener("change", () => {
+  applyDefaultPayPriceIfNotOverridden();
+  if(payQtyKg.value !== ""){
+    syncPayPortionFromKg();
+  }else if(payQtyPortion.value !== ""){
+    syncPayKgFromPortion();
+  }else{
+    updatePaymentCalcs();
+  }
+});
+payUnitPrice.addEventListener("input", () => {
+  payPriceOverridden = true;
+  updatePaymentCalcs();
+});
+payQtyKg.addEventListener("input", () => syncPayPortionFromKg());
+payQtyPortion.addEventListener("input", () => syncPayKgFromPortion());
+payActual.addEventListener("input", () => updatePaymentCalcs());
 
 /* =========================
    Init
@@ -1349,12 +1440,16 @@ function init(){
   rebuildClientIdDatalist();
   renderAll();
 
+  // ORDER init
   orderPriceOverridden = false;
   ordDiscType.value = "%";
   applyDefaultOrderPriceIfNotOverridden();
   updateOrderDiscountAndSummary("type");
 
-  updatePaymentExpectedAndDiscrepancy();
+  // PAYMENT init
+  payPriceOverridden = false;
+  applyDefaultPayPriceIfNotOverridden();
+  updatePaymentCalcs();
 
   setModeUI();
 }
