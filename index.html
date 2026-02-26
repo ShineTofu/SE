@@ -175,18 +175,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
       <!-- NEW CLIENT FORM -->
       <div id="newClientForm">
 
-        <!-- ORDER (as requested):
-             District
-             Parish (dropdown if Hoima)
-             Client type
-             Client Id
-             Client name
-             Level
-             Contact
-             Status
-             Enrollment date
-        -->
-
         <label for="ncDistrict">District</label>
         <select id="ncDistrict">
           <option value="Hoima">Hoima</option>
@@ -223,23 +211,25 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="ncType">Client Type</label>
         <select id="ncType">
-          <option value="School">School</option>
+          <option value="School - Menu">School - Menu</option>
+          <option value="School - Canteen">School - Canteen</option>
+          <option value="School Other">School Other</option>
           <option value="Retailer">Retailer</option>
           <option value="Restaurant">Restaurant</option>
+          <option value="Eatery">Eatery</option>
+          <option value="Corporate employee">Corporate employee</option>
           <option value="Institution">Institution</option>
           <option value="Individual">Individual</option>
         </select>
 
         <div id="individualDigitWrap" style="display:none;">
-          <label for="ncIndDigit">Individual Code (Second Digit 5–9)</label>
+          <label for="ncIndDigit">Individual Code (Second Digit 7–9)</label>
           <select id="ncIndDigit">
-            <option value="5">5</option>
-            <option value="6">6</option>
             <option value="7">7</option>
             <option value="8">8</option>
             <option value="9">9</option>
           </select>
-          <p class="small">Individuals use codes 5–9 as the 2nd digit.</p>
+          <p class="small">Individuals use codes 7–9 as the 2nd digit.</p>
         </div>
 
         <label>Client ID (auto prefix + manual last 3 digits)</label>
@@ -267,7 +257,7 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option value="N+2">N+2</option>
           <option value="N+3">N+3</option>
         </select>
-        <p class="small">Auto-set by type (Retailer→N+1, School/Restaurant/Institution→N+2, Individual→N+3) but editable.</p>
+        <p class="small">Auto-set by type (Retailer→N+1, Schools/Restaurant/Eatery/Corporate/Institution→N+2, Individual→N+3) but editable.</p>
 
         <label for="ncContact">Contact</label>
         <input id="ncContact" type="text" placeholder="Phone / name / contact info" />
@@ -546,6 +536,13 @@ function toAmPm(hhmm){
   return `${h}:${min}${suffix}`;
 }
 
+/*
+Client digit scheme (C-XXXXX):
+- 1xxxx Hoima, 2xxxx Buliisa, 3xxxx Masindi, 0xxxx Other
+- Second digit is type:
+  1 schools, 2 retailers, 3 restaurants, 4 eateries, 5 corporate employees, 6 institutions, 7-9 individuals
+- Last 3 digits are manual (XXX)
+*/
 function districtDigit(district){
   if(district === "Hoima") return "1";
   if(district === "Buliisa") return "2";
@@ -553,15 +550,25 @@ function districtDigit(district){
   return "0";
 }
 function typeDigit(type){
-  if(type === "School") return "1";
+  if(type === "School - Menu" || type === "School - Canteen" || type === "School Other") return "1";
   if(type === "Retailer") return "2";
   if(type === "Restaurant") return "3";
-  if(type === "Institution") return "4";
+  if(type === "Eatery") return "4";
+  if(type === "Corporate employee") return "5";
+  if(type === "Institution") return "6";
   return "";
 }
 function autoLevelByType(type){
   if(type === "Retailer") return "N+1";
-  if(type === "School" || type === "Restaurant" || type === "Institution") return "N+2";
+  if(
+    type === "School - Menu" ||
+    type === "School - Canteen" ||
+    type === "School Other" ||
+    type === "Restaurant" ||
+    type === "Eatery" ||
+    type === "Corporate employee" ||
+    type === "Institution"
+  ) return "N+2";
   if(type === "Individual") return "N+3";
   return "N+2";
 }
@@ -573,7 +580,7 @@ function ratioKgPerPortion(product){
 }
 function isRetailerClientId(clientId){
   const id = String(clientId || "").trim();
-  return /^[0-3]2\d{3}$/.test(id);
+  return /^C-[0-3]2\d{3}$/.test(id);
 }
 function defaultUnitPrice(product, clientId){
   const retailer = isRetailerClientId(clientId);
@@ -704,11 +711,11 @@ function updateClientIdPrefix(){
   if(type === "Individual"){
     show(ncIndDigitWrap);
     const d2 = String(ncIndDigit.value);
-    ncPrefix.value = `${d1}${d2}`;
+    ncPrefix.value = `C-${d1}${d2}`;
   }else{
     hide(ncIndDigitWrap);
     const d2 = typeDigit(type);
-    ncPrefix.value = `${d1}${d2}`;
+    ncPrefix.value = `C-${d1}${d2}`;
   }
 
   ncLevel.value = autoLevelByType(type);
@@ -724,12 +731,15 @@ function updateClientIdPrefix(){
 
 function updateFullClientId(){
   const last3 = String(ncLast3.value || "").trim();
-  const prefix = String(ncPrefix.value || "").trim();
-  if(/^\d{2}$/.test(prefix) && /^[0-9]{0,3}$/.test(last3)){
-    ncClientId.value = prefix + last3;
+  const prefix = String(ncPrefix.value || "").trim(); // "C-12"
+  const m = prefix.match(/^C-(\d{2})$/);
+  if(m && /^[0-9]{0,3}$/.test(last3)){
+    const digits = (m[1] + last3).padEnd(5, ""); // partial while typing
+    ncClientId.value = `C-${digits}`;
   }else{
     ncClientId.value = "";
   }
+  // If not complete 3 digits, keep partial, but validation will require exactly 3.
 }
 
 function rebuildClientIdDatalist(){
@@ -811,14 +821,14 @@ function recordNewClient(){
   if(err) return err;
 
   const district = ncDistrict.value;
-
   const type = ncType.value;
 
-  const prefix = ncPrefix.value.trim();
+  const prefix = ncPrefix.value.trim(); // "C-12"
   const last3 = ncLast3.value.trim();
-  if(!/^\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
+  if(!/^C-\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
   if(!isValid3Digits(last3)) return "Please enter the last 3 digits (XXX) as exactly 3 numbers (e.g., 001).";
-  const clientId = prefix + last3;
+
+  const clientId = `${prefix}${last3}`; // C-12XXX (5 digits total after dash)
 
   const clientName = ncClientName.value.trim();
   if(!clientName) return "Please enter Client Name.";
