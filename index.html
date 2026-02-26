@@ -177,7 +177,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <!-- ORDER (as requested):
              District
-             Subcounty
              Parish (dropdown if Hoima)
              Client type
              Client Id
@@ -200,13 +199,14 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <select id="ncParishHoima" style="display:none;">
           <option value="">Select ward (Hoima)</option>
+          <!-- Sorted alphabetically + Kibugubya (no "ward") -->
           <option>Bujuura ward</option>
           <option>Bwikya ward</option>
           <option>Central ward Hoima</option>
           <option>Karongo ward</option>
           <option>Kasingo ward</option>
           <option>Kibingo ward</option>
-          <option>Kibugubya ward</option>
+          <option>Kibugubya</option>
           <option>Kicwamba ward</option>
           <option>Kiduuma ward</option>
           <option>Kihuukya ward</option>
@@ -405,7 +405,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
               <th>Client type</th>
               <th>Level</th>
               <th>District</th>
-              <th>Subcounty</th>
               <th>Parish</th>
               <th>Contact</th>
               <th>Status</th>
@@ -856,7 +855,6 @@ function recordNewClient(){
     clientType: type,
     level,
     district,
-    subcounty: "",
     parish,
     contact,
     status,
@@ -1056,7 +1054,6 @@ function renderClients(){
       <td>${escapeHtml(c.clientType)}</td>
       <td>${escapeHtml(c.level)}</td>
       <td>${escapeHtml(c.district)}</td>
-      <td>${escapeHtml(c.subcounty || "")}</td>
       <td>${escapeHtml(c.parish)}</td>
       <td>${escapeHtml(c.contact || "")}</td>
       <td>${escapeHtml(c.status || "")}</td>
@@ -1159,7 +1156,6 @@ function exportXLSX(){
     "Client type": c.clientType,
     Level: c.level,
     District: c.district,
-    Subcounty: c.subcounty || "",
     Parish: c.parish,
     Contact: c.contact || "",
     Status: c.status || "",
