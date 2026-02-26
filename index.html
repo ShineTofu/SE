@@ -196,29 +196,27 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option value="Other">Other</option>
         </select>
 
-        <label for="ncSubcounty">Subcounty</label>
-        <input id="ncSubcounty" type="text" placeholder="Type subcounty" />
-
         <label id="parishLabel">Parish</label>
 
         <select id="ncParishHoima" style="display:none;">
           <option value="">Select ward (Hoima)</option>
-          <option>Kasingo ward</option>
-          <option>Kihuukya ward</option>
-          <option>Kiduuma ward</option>
-          <option>Kibingo ward</option>
-          <option>Karongo ward</option>
           <option>Bujuura ward</option>
-          <option>Kyesiiga ward</option>
-          <option>Kihombooza ward</option>
-          <option>Western ward Hoima</option>
-          <option>Kicwamba ward</option>
-          <option>Kyentale ward</option>
-          <option>Nyakambugu ward</option>
           <option>Bwikya ward</option>
-          <option>Northern ward Hoima</option>
-          <option>Southern ward Hoima</option>
           <option>Central ward Hoima</option>
+          <option>Karongo ward</option>
+          <option>Kasingo ward</option>
+          <option>Kibingo ward</option>
+          <option>Kibugubya ward</option>
+          <option>Kicwamba ward</option>
+          <option>Kiduuma ward</option>
+          <option>Kihuukya ward</option>
+          <option>Kihombooza ward</option>
+          <option>Kyesiiga ward</option>
+          <option>Kyentale ward</option>
+          <option>Northern ward Hoima</option>
+          <option>Nyakambugu ward</option>
+          <option>Southern ward Hoima</option>
+          <option>Western ward Hoima</option>
         </select>
 
         <input id="ncParishText" type="text" style="display:none;" placeholder="Type parish" />
@@ -627,7 +625,6 @@ const formWarn = document.getElementById("formWarn");
 
 // New client inputs
 const ncDistrict = document.getElementById("ncDistrict");
-const ncSubcounty = document.getElementById("ncSubcounty");
 const ncType = document.getElementById("ncType");
 const ncIndDigitWrap = document.getElementById("individualDigitWrap");
 const ncIndDigit = document.getElementById("ncIndDigit");
@@ -816,9 +813,6 @@ function recordNewClient(){
 
   const district = ncDistrict.value;
 
-  const subcounty = ncSubcounty.value.trim();
-  if(!subcounty) return "Please type Subcounty.";
-
   const type = ncType.value;
 
   const prefix = ncPrefix.value.trim();
@@ -862,7 +856,7 @@ function recordNewClient(){
     clientType: type,
     level,
     district,
-    subcounty,
+    subcounty: "",
     parish,
     contact,
     status,
@@ -971,7 +965,6 @@ function resetForm(){
     ncLast3.value = "";
     ncClientName.value = "";
     ncContact.value = "";
-    ncSubcounty.value = "";
     ncParishHoima.value = "";
     ncParishText.value = "";
     if(ncType.value !== "Individual"){
