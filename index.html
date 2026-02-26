@@ -53,7 +53,7 @@ label{
   font-weight:bold;
 }
 
-input, select{
+input, select, textarea{
   width:100%;
   padding:10px;
   margin-top:5px;
@@ -62,7 +62,10 @@ input, select{
   border:1px solid var(--border);
   font-size:14px;
   box-sizing:border-box;
+  font-family: inherit;
 }
+
+textarea{ resize: vertical; min-height: 90px; }
 
 button{
   padding:10px 15px;
@@ -118,7 +121,7 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
   color:var(--muted);
 }
 
-/* Emphasize Financial Data (SALE only) */
+/* Emphasize Financial Data */
 .financial-card{
   border:2px solid var(--green);
   border-radius:18px;
@@ -166,7 +169,7 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
       <select id="mode">
         <option value="newClient">New Client</option>
         <option value="order">Order</option>
-        <option value="sale">Sale</option>
+        <option value="payment">Payment</option>
       </select>
 
       <p class="warning" id="warnMsg"></p>
@@ -342,55 +345,28 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         </div>
       </div>
 
-      <!-- SALE FORM -->
-      <div id="saleForm" style="display:none;">
-        <label for="saleClientId">Client ID (select or type)</label>
-        <input id="saleClientId" list="clientIdList" placeholder="Choose or type Client ID" />
+      <!-- PAYMENT FORM (replaces Sale) -->
+      <div id="paymentForm" style="display:none;">
+        <label for="payClientId">Client ID (select or type)</label>
+        <input id="payClientId" list="clientIdList" placeholder="Choose or type Client ID" />
 
-        <label for="saleProduct">Product</label>
-        <select id="saleProduct">
-          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
-          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
-          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
-          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
-          <option value="Skewers (portion)">Skewers (portion)</option>
-        </select>
-
-        <label for="saleUnitPrice">Unit Price (auto, but editable)</label>
-        <input id="saleUnitPrice" type="number" step="1" />
-
-        <div class="flex">
-          <div style="flex:1; min-width:220px;">
-            <label for="saleQtyKg">Quantity (kg)</label>
-            <input id="saleQtyKg" type="number" step="0.001" placeholder="Enter kg" />
-          </div>
-          <div style="flex:1; min-width:220px;">
-            <label for="saleQtyPortion">Quantity (portion)</label>
-            <input id="saleQtyPortion" type="number" step="0.001" placeholder="Enter portions" />
-          </div>
-        </div>
-        <p class="small">For tofu: 1 portion = 1 kg. Kikalayi: 0.04 kg/portion. Skewers: 0.045 kg/portion.</p>
+        <label for="payOrderNumber">Order Number</label>
+        <input id="payOrderNumber" type="text" placeholder="Enter Order Number" />
 
         <div class="financial-card">
           <div class="financial-title">Financial Data</div>
 
-          <label for="saleExpected">Expected Cash Collected (auto)</label>
-          <input id="saleExpected" type="number" readonly />
+          <label for="payExpected">Expected cash collected (auto)</label>
+          <input id="payExpected" type="number" readonly />
 
-          <label for="saleActual">Actual Cash Collected</label>
-          <input id="saleActual" type="number" step="1" placeholder="Enter actual cash" />
+          <label for="payActual">Actual cash collected</label>
+          <input id="payActual" type="number" step="1" placeholder="Enter actual cash" />
 
-          <label for="saleCommission">Commission 10% (auto)</label>
-          <input id="saleCommission" type="number" readonly />
+          <label for="payDiscrepancy">Discrepancy (Expected - Actual) (auto)</label>
+          <input id="payDiscrepancy" type="number" readonly />
 
-          <label for="saleDiscrepancy">Discrepancy (Expected - Actual) (auto)</label>
-          <input id="saleDiscrepancy" type="number" readonly />
-
-          <label for="saleTotalToPay">Total Amount to be Paid (Commission - Discrepancy) (auto)</label>
-          <input id="saleTotalToPay" type="number" readonly />
-
-          <label for="saleAdvances">Advances Fees</label>
-          <input id="saleAdvances" type="number" step="1" placeholder="Enter advances fees" />
+          <label for="payComment">Comment</label>
+          <textarea id="payComment" placeholder="Write comment..."></textarea>
         </div>
       </div>
 
@@ -468,27 +444,22 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
         </table>
       </div>
 
-      <h3 style="margin:14px 0 6px;">Sales</h3>
+      <h3 style="margin:14px 0 6px;">Payments</h3>
       <div class="flex" style="margin-bottom:8px;">
-        <button class="btn-secondary" id="resetSalesBtn">Reset Sales Table</button>
+        <button class="btn-secondary" id="resetPaymentsBtn">Reset Payments Table</button>
       </div>
       <div class="table-container">
-        <table id="salesTable">
+        <table id="paymentsTable">
           <thead>
             <tr>
               <th>SE Name</th>
               <th>Date</th>
               <th>Client ID</th>
-              <th>Product</th>
-              <th>Unit Price</th>
-              <th>Qty (kg)</th>
-              <th>Qty (portion)</th>
+              <th>Order Number</th>
               <th>Expected</th>
               <th>Actual</th>
-              <th>Commission</th>
               <th>Discrepancy</th>
-              <th>Total To Pay</th>
-              <th>Advances</th>
+              <th>Comment</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -525,7 +496,7 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 ========================= */
 const STORAGE_KEY = "daily_se_tool_v2";
 
-let state = { clients: [], orders: [], sales: [] };
+let state = { clients: [], orders: [], payments: [] };
 
 function loadState(){
   try{
@@ -534,7 +505,10 @@ function loadState(){
       const parsed = JSON.parse(raw);
       state.clients = Array.isArray(parsed.clients) ? parsed.clients : [];
       state.orders  = Array.isArray(parsed.orders)  ? parsed.orders  : [];
-      state.sales   = Array.isArray(parsed.sales)   ? parsed.sales   : [];
+      // backward compatibility: older versions used "sales"
+      if(Array.isArray(parsed.payments)) state.payments = parsed.payments;
+      else if(Array.isArray(parsed.sales)) state.payments = parsed.sales;
+      else state.payments = [];
     }
   }catch(e){
     console.warn("Failed to load state", e);
@@ -608,12 +582,6 @@ function autoLevelByType(type){
   if(type === "Individual") return "N+3";
   return "N+2";
 }
-function ratioKgPerPortion(product){
-  if(product === "Kikalayi (portion)" || product === "Kikalayi (kg)") return 0.04;
-  if(product === "Skewers (portion)") return 0.045;
-  if(product === "Fresh tofu (kg)" || product === "Fried tofu (kg)") return 1.0;
-  return 1.0;
-}
 function isRetailerClientId(clientId){
   const id = String(clientId || "").trim();
   return /^C-[0-3]2\d{3}$/.test(id);
@@ -633,12 +601,11 @@ function toNumber(x){
 }
 function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
 
-function expectedCash(product, unitPriceValue, qtyKg, qtyPortion){
-  const price = toNumber(unitPriceValue);
-  if(product.includes("(portion)")){
-    return price * (toNumber(qtyPortion) || 0);
-  }
-  return price * (toNumber(qtyKg) || 0);
+/* Expected cash for an order record: (qty * unitPrice) - discountUgx */
+function expectedFromOrder(order){
+  const before = toNumber(order.quantity) * toNumber(order.unitPrice);
+  const after = before - toNumber(order.discountUgx);
+  return round2(after);
 }
 
 /* =========================
@@ -650,7 +617,7 @@ const mode = document.getElementById("mode");
 
 const newClientForm = document.getElementById("newClientForm");
 const orderForm = document.getElementById("orderForm");
-const saleForm = document.getElementById("saleForm");
+const paymentForm = document.getElementById("paymentForm");
 const formTitle = document.getElementById("formTitle");
 
 const recordBtn = document.getElementById("recordBtn");
@@ -660,7 +627,7 @@ const exportBtn = document.getElementById("exportBtn");
 
 const resetClientsBtn = document.getElementById("resetClientsBtn");
 const resetOrdersBtn = document.getElementById("resetOrdersBtn");
-const resetSalesBtn = document.getElementById("resetSalesBtn");
+const resetPaymentsBtn = document.getElementById("resetPaymentsBtn");
 
 const formError = document.getElementById("formError");
 const formWarn = document.getElementById("formWarn");
@@ -698,18 +665,13 @@ const ordBefore = document.getElementById("ordBefore");
 const ordDiscShow = document.getElementById("ordDiscShow");
 const ordAfter = document.getElementById("ordAfter");
 
-// Sale inputs
-const saleClientId = document.getElementById("saleClientId");
-const saleProduct = document.getElementById("saleProduct");
-const saleUnitPrice = document.getElementById("saleUnitPrice");
-const saleQtyKg = document.getElementById("saleQtyKg");
-const saleQtyPortion = document.getElementById("saleQtyPortion");
-const saleExpected = document.getElementById("saleExpected");
-const saleActual = document.getElementById("saleActual");
-const saleCommission = document.getElementById("saleCommission");
-const saleDiscrepancy = document.getElementById("saleDiscrepancy");
-const saleTotalToPay = document.getElementById("saleTotalToPay");
-const saleAdvances = document.getElementById("saleAdvances");
+// Payment inputs
+const payClientId = document.getElementById("payClientId");
+const payOrderNumber = document.getElementById("payOrderNumber");
+const payExpected = document.getElementById("payExpected");
+const payActual = document.getElementById("payActual");
+const payDiscrepancy = document.getElementById("payDiscrepancy");
+const payComment = document.getElementById("payComment");
 
 const clientIdList = document.getElementById("clientIdList");
 
@@ -723,7 +685,7 @@ function setModeUI(){
   setText("formError", "");
 
   const m = mode.value;
-  hide(newClientForm); hide(orderForm); hide(saleForm);
+  hide(newClientForm); hide(orderForm); hide(paymentForm);
 
   if(m === "newClient"){
     formTitle.textContent = "New Client";
@@ -732,8 +694,8 @@ function setModeUI(){
     formTitle.textContent = "Order";
     show(orderForm);
   }else{
-    formTitle.textContent = "Sale";
-    show(saleForm);
+    formTitle.textContent = "Payment";
+    show(paymentForm);
   }
 }
 
@@ -825,7 +787,6 @@ function updateOrderDiscountAndSummary(source){
   let ugx = toNumber(ordDiscUgx.value);
 
   if(before <= 0){
-    // nothing to calculate
     ordBefore.textContent = "0";
     ordDiscShow.textContent = "0";
     ordAfter.textContent = "0";
@@ -834,18 +795,14 @@ function updateOrderDiscountAndSummary(source){
   }
 
   if(type === "%"){
-    // percentage is the source (or keep pct), compute UGX
     if(source === "ugx") {
-      // if user edited UGX while type is %, convert to %
       pct = (ugx / before) * 100;
       ordDiscPct.value = round2(pct);
     }
     ugx = (toNumber(ordDiscPct.value) / 100) * before;
     ordDiscUgx.value = round2(ugx);
   }else{
-    // UGX is the source, compute %
     if(source === "pct") {
-      // if user edited % while type is UGX, convert to UGX
       ugx = (pct / 100) * before;
       ordDiscUgx.value = round2(ugx);
     }
@@ -865,55 +822,23 @@ function updateOrderDiscountAndSummary(source){
 }
 
 /* =========================
-   SALE: Unit price manual override
+   PAYMENT: Expected + discrepancy
 ========================= */
-let saleLock = false;
-let salePriceOverridden = false;
+function updatePaymentExpectedAndDiscrepancy(){
+  const cid = payClientId.value.trim();
+  const onum = payOrderNumber.value.trim();
+  let expected = 0;
 
-function applyDefaultSalePriceIfNotOverridden(){
-  if(salePriceOverridden) return;
-  const cid = saleClientId.value.trim();
-  const prod = saleProduct.value;
-  saleUnitPrice.value = defaultUnitPrice(prod, cid);
-}
+  if(cid && onum){
+    const match = state.orders.find(o => String(o.clientId) === cid && String(o.orderNumber || "") === onum);
+    if(match){
+      expected = expectedFromOrder(match);
+    }
+  }
 
-function updateSaleCalcs(){
-  const prod = saleProduct.value;
-  const kg = toNumber(saleQtyKg.value);
-  const portion = toNumber(saleQtyPortion.value);
-
-  const exp = expectedCash(prod, saleUnitPrice.value, kg, portion);
-  saleExpected.value = round2(exp);
-
-  const actual = toNumber(saleActual.value);
-  const comm = actual * 0.10;
-  saleCommission.value = round2(comm);
-
-  const disc = exp - actual;
-  saleDiscrepancy.value = round2(disc);
-
-  const total = comm - disc;
-  saleTotalToPay.value = round2(total);
-}
-
-function syncKgFromPortion(){
-  if(saleLock) return;
-  saleLock = true;
-  const ratio = ratioKgPerPortion(saleProduct.value);
-  const p = toNumber(saleQtyPortion.value);
-  saleQtyKg.value = round2(p * ratio);
-  saleLock = false;
-  updateSaleCalcs();
-}
-
-function syncPortionFromKg(){
-  if(saleLock) return;
-  saleLock = true;
-  const ratio = ratioKgPerPortion(saleProduct.value);
-  const kg = toNumber(saleQtyKg.value);
-  saleQtyPortion.value = ratio === 0 ? "" : round2(kg / ratio);
-  saleLock = false;
-  updateSaleCalcs();
+  payExpected.value = round2(expected);
+  const actual = toNumber(payActual.value);
+  payDiscrepancy.value = round2(expected - actual);
 }
 
 /* =========================
@@ -988,6 +913,18 @@ function recordNewClient(){
   return "";
 }
 
+/* Auto order number generator (not shown in Orders table) */
+function nextOrderNumber(){
+  const maxN = state.orders.reduce((mx, o) => {
+    const m = String(o.orderNumber || "").match(/^ORD-(\d{4})$/);
+    if(!m) return mx;
+    const n = Number(m[1]);
+    return Number.isFinite(n) ? Math.max(mx, n) : mx;
+  }, 0);
+  const next = maxN + 1;
+  return `ORD-${String(next).padStart(4,"0")}`;
+}
+
 function recordOrder(){
   const err = validateGlobal();
   if(err) return err;
@@ -1036,7 +973,8 @@ function recordOrder(){
     unitPrice: round2(unitPrice),
     discountType: discType,
     discountPct: discPct,
-    discountUgx: discUgx
+    discountUgx: discUgx,
+    orderNumber: nextOrderNumber()
   });
 
   saveState();
@@ -1044,43 +982,32 @@ function recordOrder(){
   return "";
 }
 
-function recordSale(){
+function recordPayment(){
   const err = validateGlobal();
   if(err) return err;
 
-  const cid = saleClientId.value.trim();
+  const cid = payClientId.value.trim();
   if(!cid) return "Please select or type a Client ID.";
 
-  const prod = saleProduct.value;
+  const onum = payOrderNumber.value.trim();
+  if(!onum) return "Please enter Order Number.";
 
-  const kg = toNumber(saleQtyKg.value);
-  const portion = toNumber(saleQtyPortion.value);
-  if(kg === 0 && portion === 0){
-    return "Please enter a quantity in kg or portion.";
-  }
+  updatePaymentExpectedAndDiscrepancy();
 
-  const price = toNumber(saleUnitPrice.value);
-  const exp = toNumber(saleExpected.value);
-  const actual = toNumber(saleActual.value);
-  const comm = toNumber(saleCommission.value);
-  const disc = toNumber(saleDiscrepancy.value);
-  const total = toNumber(saleTotalToPay.value);
-  const adv = toNumber(saleAdvances.value);
+  const expected = toNumber(payExpected.value);
+  const actual = toNumber(payActual.value);
+  const disc = toNumber(payDiscrepancy.value);
+  const comment = payComment.value.trim();
 
-  state.sales.push({
+  state.payments.push({
     date: globalDate.value,
     seName: seName.value.trim(),
     clientId: cid,
-    product: prod,
-    unitPrice: round2(price),
-    qtyKg: round2(kg),
-    qtyPortion: round2(portion),
-    expected: round2(exp),
+    orderNumber: onum,
+    expected: round2(expected),
     actual: round2(actual),
-    commission: round2(comm),
     discrepancy: round2(disc),
-    totalToPay: round2(total),
-    advances: round2(adv)
+    comment
   });
 
   saveState();
@@ -1120,15 +1047,12 @@ function resetForm(){
     applyDefaultOrderPriceIfNotOverridden();
     updateOrderDiscountAndSummary("type");
   }else{
-    saleClientId.value = "";
-    saleProduct.value = "Fried tofu (kg)";
-    saleQtyKg.value = "";
-    saleQtyPortion.value = "";
-    saleActual.value = "";
-    saleAdvances.value = "";
-    salePriceOverridden = false;
-    applyDefaultSalePriceIfNotOverridden();
-    updateSaleCalcs();
+    payClientId.value = "";
+    payOrderNumber.value = "";
+    payExpected.value = "";
+    payActual.value = "";
+    payDiscrepancy.value = "";
+    payComment.value = "";
   }
 }
 
@@ -1141,7 +1065,7 @@ function goBack(){
 ========================= */
 function resetClientsTable(){
   const ok = confirm(
-    "Are you sure?\n\nThis will delete ALL Clients records and remove the Client ID list used in Order/Sale."
+    "Are you sure?\n\nThis will delete ALL Clients records and remove the Client ID list used in Order/Payment."
   );
   if(!ok) return;
   state.clients = [];
@@ -1156,10 +1080,10 @@ function resetOrdersTable(){
   saveState();
   renderAll();
 }
-function resetSalesTable(){
-  const ok = confirm("Are you sure you want to delete ALL Sales records?");
+function resetPaymentsTable(){
+  const ok = confirm("Are you sure you want to delete ALL Payments records?");
   if(!ok) return;
-  state.sales = [];
+  state.payments = [];
   saveState();
   renderAll();
 }
@@ -1243,29 +1167,24 @@ function renderOrders(){
   });
 }
 
-function renderSales(){
-  const tbody = document.querySelector("#salesTable tbody");
+function renderPayments(){
+  const tbody = document.querySelector("#paymentsTable tbody");
   tbody.innerHTML = "";
-  state.sales.forEach((s, idx) => {
+  state.payments.forEach((p, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(s.seName)}</td>
-      <td>${s.date}</td>
-      <td>${escapeHtml(s.clientId)}</td>
-      <td>${escapeHtml(s.product)}</td>
-      <td>${escapeHtml(String(s.unitPrice))}</td>
-      <td>${escapeHtml(String(s.qtyKg))}</td>
-      <td>${escapeHtml(String(s.qtyPortion))}</td>
-      <td>${escapeHtml(String(s.expected))}</td>
-      <td>${escapeHtml(String(s.actual))}</td>
-      <td>${escapeHtml(String(s.commission))}</td>
-      <td>${escapeHtml(String(s.discrepancy))}</td>
-      <td>${escapeHtml(String(s.totalToPay))}</td>
-      <td>${escapeHtml(String(s.advances))}</td>
+      <td>${escapeHtml(p.seName)}</td>
+      <td>${escapeHtml(p.date)}</td>
+      <td>${escapeHtml(p.clientId)}</td>
+      <td>${escapeHtml(p.orderNumber)}</td>
+      <td>${escapeHtml(String(p.expected))}</td>
+      <td>${escapeHtml(String(p.actual))}</td>
+      <td>${escapeHtml(String(p.discrepancy))}</td>
+      <td>${escapeHtml(p.comment || "")}</td>
       <td></td>
     `;
     tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
-      state.sales.splice(idx, 1);
+      state.payments.splice(idx, 1);
       saveState();
       renderAll();
     }));
@@ -1276,7 +1195,7 @@ function renderSales(){
 function renderAll(){
   renderClients();
   renderOrders();
-  renderSales();
+  renderPayments();
 }
 
 /* =========================
@@ -1327,22 +1246,17 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
 
-  const salesRows = state.sales.map(s => ({
-    "SE Name": s.seName,
-    Date: s.date,
-    "Client ID": s.clientId,
-    Product: s.product,
-    "Unit Price": s.unitPrice,
-    "Qty (kg)": s.qtyKg,
-    "Qty (portion)": s.qtyPortion,
-    Expected: s.expected,
-    Actual: s.actual,
-    Commission: s.commission,
-    Discrepancy: s.discrepancy,
-    "Total To Pay": s.totalToPay,
-    Advances: s.advances
+  const paymentsRows = state.payments.map(p => ({
+    "SE Name": p.seName,
+    Date: p.date,
+    "Client ID": p.clientId,
+    "Order Number": p.orderNumber,
+    Expected: p.expected,
+    Actual: p.actual,
+    Discrepancy: p.discrepancy,
+    Comment: p.comment || ""
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows), "Sales");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(paymentsRows), "Payments");
 
   const date = globalDate.value || todayISO();
   const se = (seName.value.trim() || "SE").replace(/[^a-z0-9_-]+/gi,"_");
@@ -1366,7 +1280,7 @@ recordBtn.addEventListener("click", () => {
   let err = "";
   if(m === "newClient") err = recordNewClient();
   else if(m === "order") err = recordOrder();
-  else err = recordSale();
+  else err = recordPayment();
 
   if(err){
     setText("formError", err);
@@ -1381,7 +1295,7 @@ exportBtn.addEventListener("click", () => exportXLSX());
 
 resetClientsBtn.addEventListener("click", () => resetClientsTable());
 resetOrdersBtn.addEventListener("click", () => resetOrdersTable());
-resetSalesBtn.addEventListener("click", () => resetSalesTable());
+resetPaymentsBtn.addEventListener("click", () => resetPaymentsTable());
 
 // New client reactive
 ncDistrict.addEventListener("change", () => { updateParishUI(); updateClientIdPrefix(); });
@@ -1407,39 +1321,13 @@ ordUnitPrice.addEventListener("input", () => {
   updateOrderDiscountAndSummary("type");
 });
 ordDiscType.addEventListener("change", () => updateOrderDiscountAndSummary("type"));
-ordDiscPct.addEventListener("input", () => {
-  if(ordDiscType.value === "%") updateOrderDiscountAndSummary("pct");
-  else updateOrderDiscountAndSummary("pct");
-});
-ordDiscUgx.addEventListener("input", () => {
-  if(ordDiscType.value === "UGX") updateOrderDiscountAndSummary("ugx");
-  else updateOrderDiscountAndSummary("ugx");
-});
+ordDiscPct.addEventListener("input", () => updateOrderDiscountAndSummary("pct"));
+ordDiscUgx.addEventListener("input", () => updateOrderDiscountAndSummary("ugx"));
 
-// SALE reactive
-saleClientId.addEventListener("input", () => {
-  applyDefaultSalePriceIfNotOverridden();
-  updateSaleCalcs();
-});
-saleProduct.addEventListener("change", () => {
-  applyDefaultSalePriceIfNotOverridden();
-  if(saleQtyKg.value !== ""){
-    syncPortionFromKg();
-  }else if(saleQtyPortion.value !== ""){
-    syncKgFromPortion();
-  }else{
-    updateSaleCalcs();
-  }
-});
-
-saleUnitPrice.addEventListener("input", () => {
-  salePriceOverridden = true;
-  updateSaleCalcs();
-});
-
-saleQtyKg.addEventListener("input", () => syncPortionFromKg());
-saleQtyPortion.addEventListener("input", () => syncKgFromPortion());
-saleActual.addEventListener("input", () => updateSaleCalcs());
+// PAYMENT reactive
+payClientId.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
+payOrderNumber.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
+payActual.addEventListener("input", () => updatePaymentExpectedAndDiscrepancy());
 
 /* =========================
    Init
@@ -1461,14 +1349,12 @@ function init(){
   rebuildClientIdDatalist();
   renderAll();
 
-  salePriceOverridden = false;
-  applyDefaultSalePriceIfNotOverridden();
-  updateSaleCalcs();
-
   orderPriceOverridden = false;
   ordDiscType.value = "%";
   applyDefaultOrderPriceIfNotOverridden();
   updateOrderDiscountAndSummary("type");
+
+  updatePaymentExpectedAndDiscrepancy();
 
   setModeUI();
 }
