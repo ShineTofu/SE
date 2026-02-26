@@ -155,7 +155,12 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
       <input id="globalDate" type="date" />
 
       <label for="seName">SE Name</label>
-      <input id="seName" type="text" placeholder="Enter SE name" />
+      <select id="seName">
+        <option value="JimFred Kaboyo">JimFred Kaboyo</option>
+        <option value="SE 2">SE 2</option>
+        <option value="SE 3">SE 3</option>
+        <option value="SE 4">SE 4</option>
+      </select>
 
       <label for="mode">Mode</label>
       <select id="mode">
@@ -177,8 +182,8 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="ncDistrict">District</label>
         <select id="ncDistrict">
-          <option value="Hoima">Hoima</option>
           <option value="Buliisa">Buliisa</option>
+          <option value="Hoima">Hoima</option>
           <option value="Masindi">Masindi</option>
           <option value="Other">Other</option>
         </select>
@@ -187,7 +192,6 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <select id="ncParishHoima" style="display:none;">
           <option value="">Select ward (Hoima)</option>
-          <!-- Sorted alphabetically + Kibugubya (no "ward") -->
           <option>Bujuura ward</option>
           <option>Bwikya ward</option>
           <option>Central ward Hoima</option>
@@ -197,10 +201,10 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
           <option>Kibugubya</option>
           <option>Kicwamba ward</option>
           <option>Kiduuma ward</option>
-          <option>Kihuukya ward</option>
           <option>Kihombooza ward</option>
-          <option>Kyesiiga ward</option>
+          <option>Kihuukya ward</option>
           <option>Kyentale ward</option>
+          <option>Kyesiiga ward</option>
           <option>Northern ward Hoima</option>
           <option>Nyakambugu ward</option>
           <option>Southern ward Hoima</option>
@@ -211,15 +215,15 @@ hr.sep{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
         <label for="ncType">Client Type</label>
         <select id="ncType">
-          <option value="School - Menu">School - Menu</option>
-          <option value="School - Canteen">School - Canteen</option>
-          <option value="School Other">School Other</option>
-          <option value="Retailer">Retailer</option>
-          <option value="Restaurant">Restaurant</option>
-          <option value="Eatery">Eatery</option>
           <option value="Corporate employee">Corporate employee</option>
-          <option value="Institution">Institution</option>
+          <option value="Eatery">Eatery</option>
           <option value="Individual">Individual</option>
+          <option value="Institution">Institution</option>
+          <option value="Restaurant">Restaurant</option>
+          <option value="Retailer">Retailer</option>
+          <option value="School - Canteen">School - Canteen</option>
+          <option value="School - Menu">School - Menu</option>
+          <option value="School Other">School Other</option>
         </select>
 
         <div id="individualDigitWrap" style="display:none;">
@@ -739,7 +743,6 @@ function updateFullClientId(){
   }else{
     ncClientId.value = "";
   }
-  // If not complete 3 digits, keep partial, but validation will require exactly 3.
 }
 
 function rebuildClientIdDatalist(){
@@ -828,7 +831,7 @@ function recordNewClient(){
   if(!/^C-\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
   if(!isValid3Digits(last3)) return "Please enter the last 3 digits (XXX) as exactly 3 numbers (e.g., 001).";
 
-  const clientId = `${prefix}${last3}`; // C-12XXX (5 digits total after dash)
+  const clientId = `${prefix}${last3}`; // C-12XXX
 
   const clientName = ncClientName.value.trim();
   if(!clientName) return "Please enter Client Name.";
