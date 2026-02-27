@@ -9,8 +9,34 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#028b43">
 
-  <!-- SheetJS (XLSX export) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS (XLSX export) - CDN with fallback -->
+  <script>
+    (function loadXLSX(){
+      function addScript(src, onload, onerror){
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = onload;
+        s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+
+      // Primary CDN
+      addScript(
+        "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+        function(){ console.log("XLSX loaded from jsDelivr"); },
+        function(){
+          console.warn("jsDelivr failed, trying SheetJS CDN...");
+          // Fallback CDN
+          addScript(
+            "https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js",
+            function(){ console.log("XLSX loaded from SheetJS CDN"); },
+            function(){ console.error("Both XLSX CDNs failed."); }
+          );
+        }
+      );
+    })();
+  </script>
 
   <style>
 :root{
@@ -1275,7 +1301,7 @@ function exportXLSX(){
   setText("formWarn", "");
 
   if(typeof XLSX === "undefined"){
-    setText("formError", "XLSX library not loaded. Please check internet access to the CDN (first load).");
+    setText("formError", "XLSX library not loaded. Open the app once while ONLINE (first load), then try Export again.");
     return;
   }
 
@@ -1452,6 +1478,13 @@ function init(){
   updatePaymentCalcs();
 
   setModeUI();
+
+  // Friendly warning if XLSX not loaded yet (offline/blocked first load)
+  setTimeout(() => {
+    if (typeof XLSX === "undefined") {
+      setText("formWarn", "⚠️ XLSX not loaded yet. Open this app once with internet (first load), then Export will work.");
+    }
+  }, 1200);
 }
 init();
 </script>
