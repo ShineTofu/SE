@@ -1307,17 +1307,18 @@ function exportXLSX(){
 
   const wb = XLSX.utils.book_new();
 
+  // ✅ Clients sheet reordered + added one blank column + corrected spelling "Enrollment date"
   const clientsRows = state.clients.map(c => ({
-    Date: c.date,
+    "Date": c.date,
     "SE Name": c.seName,
-    "Client ID": c.clientId,
-    "Client name": c.clientName,
+    "Full Client ID": c.clientId,
     "Client type": c.clientType,
-    Level: c.level,
-    District: c.district,
-    Parish: c.parish,
-    Contact: c.contact || "",
-    Status: c.status || "",
+    "Level": c.level,
+    "District": c.district,
+    "": "", // blank column (for your copy/paste needs)
+    "Parish": c.parish,
+    "Contact": c.contact || "",
+    "Status": c.status || "",
     "Enrollment date": c.enrollmentDate || ""
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
