@@ -1,28 +1,64 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Selling Agent Daily Sales Tool</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily SE Tool</title>
 
-<!-- PWA (offline) -->
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#0B8F45">
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0B8F45">
 
-<style>
+  <!-- SheetJS (XLSX export) - CDN with fallback -->
+  <script>
+    (function loadXLSX(){
+      function addScript(src, onload, onerror){
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = onload;
+        s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+
+      // Primary CDN
+      addScript(
+        "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+        function(){ console.log("XLSX loaded from jsDelivr"); },
+        function(){
+          console.warn("jsDelivr failed, trying SheetJS CDN...");
+          // Fallback CDN
+          addScript(
+            "https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js",
+            function(){ console.log("XLSX loaded from SheetJS CDN"); },
+            function(){ console.error("Both XLSX CDNs failed."); }
+          );
+        }
+      );
+    })();
+  </script>
+
+  <style>
+/* =========================
+   PowerBI-like Dashboard UI
+   (VISUAL ONLY CHANGES)
+   ========================= */
+
+/* Palette inspired by your PowerBI dashboard screenshot */
 :root{
-  --brand-green:#0B8F45;
-  --brand-green-2:#0A7F3E;
-  --mint-bg:#DFF2D8;
-  --mint-bg-2:#CFEBC5;
+  --brand-green:#0B8F45;     /* primary green */
+  --brand-green-2:#0A7F3E;   /* darker for hover */
+  --mint-bg:#DFF2D8;         /* light green background */
+  --mint-bg-2:#CFEBC5;       /* slightly deeper for sections */
   --card:#ffffff;
-  --card-tint:#F6FAF5;
+  --card-tint:#F6FAF5;       /* subtle card tint */
   --text:#0b1220;
   --muted:#64748b;
   --border:#D7E3D4;
   --shadow:0 8px 18px rgba(11, 18, 32, 0.08);
   --shadow-soft:0 6px 14px rgba(11, 18, 32, 0.06);
-  --accent:#F2A11F;
+  --accent:#F2A11F;          /* orange accent */
+  --accent-2:#FFD07A;        /* warm highlight */
   --danger:#DC2626;
   --warning:#B45309;
 
@@ -33,6 +69,7 @@
   --header-height:64px;
 }
 
+/* Page background with soft green gradient like dashboard canvas */
 body{
   margin:0;
   font-family: Arial, sans-serif;
@@ -42,33 +79,14 @@ body{
   color:var(--text);
 }
 
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:10;
-  height:var(--header-height);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:0 14px;
-  background:var(--brand-green);
-  box-shadow:0 10px 24px rgba(0,0,0,0.18);
-}
-.topbar .title{
-  color:#fff;
-  font-weight:800;
-  letter-spacing:.3px;
-  text-align:center;
-  line-height:1.1;
-  font-size:18px;
-}
-
+/* Container: a bit wider like a report canvas */
 .container{
-  max-width:780px;
+  max-width:820px;
   margin:auto;
   padding:14px;
 }
 
+/* Card style close to PowerBI visuals tiles */
 .card{
   background:var(--card);
   border:1px solid var(--border);
@@ -79,6 +97,8 @@ body{
   position:relative;
   overflow:hidden;
 }
+
+/* Thin accent line on top of cards (like KPI tiles) */
 .card::before{
   content:"";
   position:absolute;
@@ -90,17 +110,19 @@ body{
   opacity:.95;
 }
 
+/* Headings in green like the report section titles */
 h2{
   margin:0 0 10px 0;
   color:var(--brand-green);
   font-size:18px;
   font-weight:800;
 }
-p{
-  margin:8px 0 0 0;
-  color:var(--muted);
-  line-height:1.35;
-  font-size:13.5px;
+
+h3{
+  margin:10px 0 8px;
+  color:var(--brand-green);
+  font-size:15px;
+  font-weight:800;
 }
 
 label{
@@ -112,27 +134,37 @@ label{
   margin-bottom:6px;
 }
 
-input, select{
+/* Inputs: rounded + subtle shadows like slicers */
+input, select, textarea{
   width:100%;
   padding:11px 12px;
+  margin-top:0;
+  margin-bottom:10px;
   border-radius:var(--radius-input);
   border:1px solid var(--border);
   font-size:14px;
+  box-sizing:border-box;
+  font-family: inherit;
   background:linear-gradient(180deg, #ffffff 0%, var(--card-tint) 100%);
   box-shadow:0 2px 8px rgba(11, 18, 32, 0.04);
   outline:none;
-  transition:box-shadow .15s ease, border-color .15s ease;
+  transition:box-shadow .15s ease, border-color .15s ease, transform .05s ease;
 }
-input:focus, select:focus{
+
+textarea{ resize: vertical; min-height: 70px; }
+
+input:focus, select:focus, textarea:focus{
   border-color:rgba(11,143,69,0.55);
   box-shadow:0 0 0 4px rgba(11,143,69,0.14), 0 6px 14px rgba(11, 18, 32, 0.06);
 }
+
 input[readonly]{
   background:linear-gradient(180deg, #F1F7F2 0%, #EAF4EA 100%);
   color:#1f2937;
   border-color:#CFE3D2;
 }
 
+/* Buttons: pill, dashboard-like */
 button{
   padding:10px 14px;
   border-radius:var(--radius-btn);
@@ -142,16 +174,26 @@ button{
   transition:transform .06s ease, box-shadow .15s ease, filter .15s ease;
   box-shadow:0 8px 16px rgba(11, 18, 32, 0.12);
 }
-button:active{ transform:translateY(1px); filter:brightness(.98); }
+
+button:active{
+  transform:translateY(1px);
+  filter:brightness(.98);
+}
 
 .btn-primary{
   background:linear-gradient(180deg, var(--brand-green) 0%, var(--brand-green-2) 100%);
   color:white;
 }
+
+.btn-primary:hover{ box-shadow:0 10px 18px rgba(11,143,69,0.25); }
+
 .btn-orange{
   background:linear-gradient(180deg, var(--accent) 0%, #E89416 100%);
   color:#1f2937;
 }
+
+.btn-orange:hover{ box-shadow:0 10px 18px rgba(242,161,31,0.25); }
+
 .btn-secondary{
   background:linear-gradient(180deg, #FFFFFF 0%, #F4F7F7 100%);
   color:#0f172a;
@@ -159,13 +201,16 @@ button:active{ transform:translateY(1px); filter:brightness(.98); }
   box-shadow:0 8px 16px rgba(11, 18, 32, 0.08);
 }
 
+.btn-secondary:hover{ box-shadow:0 10px 18px rgba(11, 18, 32, 0.10); }
+
+/* Flex row like dashboard button bars */
 .flex{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
-  margin-top:10px;
 }
 
+/* Tables: embedded visual look */
 .table-container{
   overflow-x:auto;
   margin-top:10px;
@@ -180,7 +225,7 @@ table{
   border-spacing:0;
   width:100%;
   font-size:13px;
-  min-width:950px;
+  min-width:980px; /* scroll like BI */
 }
 
 th{
@@ -189,563 +234,1439 @@ th{
   background:linear-gradient(180deg, #EAF6EA 0%, #DFF1DE 100%);
   color:var(--brand-green);
   font-weight:900;
+  letter-spacing:.2px;
   border-bottom:1px solid var(--border);
 }
+
 th, td{
   padding:10px 10px;
   border-right:1px solid var(--border);
   border-bottom:1px solid var(--border);
   text-align:left;
+  vertical-align:top;
   white-space:nowrap;
 }
-thead tr th:last-child, tbody tr td:last-child{ border-right:none; }
+
+thead tr th:first-child{ border-top-left-radius:14px; }
+thead tr th:last-child{ border-top-right-radius:14px; border-right:none; }
+tbody tr td:last-child{ border-right:none; }
 
 tbody tr:nth-child(even) td{ background:#FBFDFB; }
 tbody tr:hover td{ background:#F0FAF1; }
-
-#recordsTable button{
-  padding:8px 10px;
-  border-radius:999px;
-  border:1px solid rgba(220,38,38,0.35);
-  background:linear-gradient(180deg, #fff 0%, #fff5f5 100%);
-  color:var(--danger);
-  box-shadow:none;
-  font-weight:900;
-}
 
 .error{
   color:var(--danger);
   font-size:13px;
   font-weight:800;
-  margin-top:8px;
 }
+
 .warning{
   color:var(--warning);
   font-size:13px;
   font-weight:800;
-  margin-top:6px;
 }
 
-.hero{
+.small{
+  font-size:12.5px;
+  color:var(--muted);
+  line-height:1.35;
+}
+
+hr.sep{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:12px 0;
+}
+
+.badge{
+  display:inline-block;
+  padding:2px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  font-size:12px;
+  background:linear-gradient(180deg, #ffffff 0%, #F6FAF5 100%);
+  color:var(--muted);
+}
+
+/* Emphasize Financial Data: keep your class name, just restyle it */
+.financial-card{
+  border:1px solid rgba(11,143,69,0.35);
+  border-radius:18px;
+  padding:14px;
+  background:
+    radial-gradient(560px 220px at 15% 10%, rgba(242,161,31,0.14), rgba(242,161,31,0) 60%),
+    linear-gradient(180deg, #ffffff 0%, #F5FBF6 100%);
+  box-shadow:0 10px 18px rgba(11,143,69,0.12);
+  margin-top:12px;
+  position:relative;
+  overflow:hidden;
+}
+
+.financial-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  height:5px;
+  width:100%;
+  background:linear-gradient(90deg, var(--accent) 0%, rgba(242,161,31,0) 65%);
+  opacity:.95;
+}
+
+.financial-title{
+  font-size:16px;
+  font-weight:900;
+  margin:0 0 10px;
+  color:var(--brand-green);
+}
+
+/* Make the first intro card more "hero" like */
+.card.hero{
   background:
     radial-gradient(560px 220px at 15% 10%, rgba(242,161,31,0.18), rgba(242,161,31,0) 60%),
     linear-gradient(180deg, #ffffff 0%, #F5FBF6 100%);
   box-shadow:var(--shadow);
 }
-.hero::before{ height:6px; }
+.card.hero::before{ height:6px; }
 
+/* Mobile tweaks */
 @media (max-width:420px){
-  .topbar .title{ font-size:16px; }
-  h2{ font-size:16px; }
   .container{ padding:12px; }
+  h2{ font-size:16px; }
   button{ width:100%; }
 }
-</style>
+  </style>
 </head>
 
 <body>
+  <div class="container">
 
-<div class="topbar">
-  <div class="title">Selling Agent Daily Sales Tool</div>
-</div>
+    <div class="card hero">
+      <h2>Daily SE Tool</h2>
+      <p class="small">
+        This tool helps you record daily sales and related variables for Sales Executive (SE).
+        Please submit the completed table each day to the S&amp;M Manager via WhatsApp or email.
+      </p>
+      <p class="small" id="offlineNote"></p>
+    </div>
 
-<div class="container">
+    <!-- Global Interface -->
+    <div class="card" id="globalCard">
+      <h2>Global Interface</h2>
 
-<div class="card hero">
-  <h2>Overview</h2>
-  <p>
-    This tool helps you record daily sales and related variables for Selling Agents (SAs).
-    Please submit the completed table each day to the S&amp;M Manager via WhatsApp or email.
-  </p>
-</div>
+      <label for="globalDate">Date</label>
+      <input id="globalDate" type="date" />
 
-<div class="card">
-<h2>General Information</h2>
+      <label for="seName">SE Name</label>
+      <select id="seName">
+        <option value="JimFred Kaboyo">JimFred Kaboyo</option>
+        <option value="SE 2">SE 2</option>
+        <option value="SE 3">SE 3</option>
+        <option value="SE 4">SE 4</option>
+      </select>
 
-<label>Date</label>
-<input type="date" id="date">
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="newClient">New Client</option>
+        <option value="order">Order</option>
+        <option value="payment">Payment</option>
+      </select>
 
-<label>District</label>
-<select id="district">
-  <option value="">Select</option>
-  <option>Buliisa</option>
-  <option>Hoima</option>
-</select>
+      <p class="warning" id="warnMsg"></p>
+      <p class="error" id="errorMsg"></p>
+    </div>
 
-<label>Sales Channel</label>
-<select id="channel">
-  <option value="">Select</option>
-  <option>Hawking</option>
-  <option>Market sales</option>
-  <option>Producer activation</option>
-</select>
+    <!-- Form Card -->
+    <div class="card" id="formCard">
+      <h2 id="formTitle">New Client</h2>
 
-<label>Product</label>
-<select id="product">
-  <option value="">Select</option>
-  <option>Kikalayi</option>
-  <option>Skewer</option>
-</select>
+      <!-- NEW CLIENT FORM -->
+      <div id="newClientForm">
 
-<label>SA Name</label>
-<select id="sa">
-  <option value="">Select</option>
-  <option>Amanyire Fred</option>
-  <option>Atugonza Lydia</option>
-  <option>Ayesiga Sunny</option>
-  <option>Baguma AbdulKarim</option>
-  <option>Baruza Stephen</option>
-  <option>Kabagenyi Faridah</option>
-  <option>Katusiime Janepher</option>
-  <option>Kemigisha Rosette</option>
-  <option>Kiiza Majory</option>
-  <option>Mugisa Allan</option>
-  <option>Mugisa Humphrey</option>
-  <option>Muwanguzi Lawrence</option>
-  <option>Nakaga Rovince</option>
-  <option>Natukunda Mellan</option>
-  <option>Ngonzi Patience Comfort</option>
-  <option>Nkyanungi Joyce</option>
-  <option>Nuwamanya Robert</option>
-  <option>Ofoyrwoth Gideon</option>
-  <option>Tugozagane Jipe</option>
-  <option>Tumusiime Brighton</option>
-</select>
+        <label for="ncDistrict">District</label>
+        <select id="ncDistrict">
+          <option value="Buliisa">Buliisa</option>
+          <option value="Hoima">Hoima</option>
+          <option value="Masindi">Masindi</option>
+          <option value="Other">Other</option>
+        </select>
 
-<label>Parish</label>
-<select id="parishSelect" style="display:none"></select>
+        <label id="parishLabel">Parish</label>
 
-<!-- Buliisa free text input -->
-<input type="text" id="parishInput" placeholder="Enter parish" list="buliisaParishesList">
-<datalist id="buliisaParishesList">
-  <option value="Western ward Buliisa"></option>
-</datalist>
+        <select id="ncParishHoima" style="display:none;">
+          <option value="">Select ward (Hoima)</option>
+          <option>Bujuura ward</option>
+          <option>Bwikya ward</option>
+          <option>Central ward Hoima</option>
+          <option>Karongo ward</option>
+          <option>Kasingo ward</option>
+          <option>Kibingo ward</option>
+          <option>Kibugubya</option>
+          <option>Kicwamba ward</option>
+          <option>Kiduuma ward</option>
+          <option>Kihombooza ward</option>
+          <option>Kihuukya ward</option>
+          <option>Kyentale ward</option>
+          <option>Kyesiiga ward</option>
+          <option>Northern ward Hoima</option>
+          <option>Nyakambugu ward</option>
+          <option>Southern ward Hoima</option>
+          <option>Western ward Hoima</option>
+        </select>
 
-</div>
+        <input id="ncParishText" type="text" style="display:none;" placeholder="Type parish" />
 
-<div class="card">
-<h2>Product</h2>
+        <label for="ncType">Client Type</label>
+        <select id="ncType">
+          <option value="Corporate employee">Corporate employee</option>
+          <option value="Eatery">Eatery</option>
+          <option value="Individual">Individual</option>
+          <option value="Institution">Institution</option>
+          <option value="Restaurant">Restaurant</option>
+          <option value="Retailer">Retailer</option>
+          <option value="School - Canteen">School - Canteen</option>
+          <option value="School - Menu">School - Menu</option>
+          <option value="School Other">School Other</option>
+        </select>
 
-<label>Unit Price (UGX)</label>
-<input type="number" id="price" readonly>
+        <div id="individualDigitWrap" style="display:none;">
+          <label for="ncIndDigit">Individual Code (Second Digit 7–9)</label>
+          <select id="ncIndDigit">
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+          </select>
+          <p class="small">Individuals use codes 7–9 as the 2nd digit.</p>
+        </div>
 
-<label>Portion Weight (kg)</label>
-<input type="number" id="weight" readonly>
+        <label>Client ID (auto prefix + manual last 3 digits)</label>
+        <div class="flex" style="align-items:flex-end;">
+          <div style="flex:1; min-width:160px;">
+            <label for="ncPrefix" class="small">Prefix (auto)</label>
+            <input id="ncPrefix" type="text" readonly />
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label for="ncLast3" class="small">Last 3 digits (XXX)</label>
+            <input id="ncLast3" type="text" inputmode="numeric" maxlength="3" placeholder="e.g. 001" />
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label for="ncClientId" class="small">Full Client ID</label>
+            <input id="ncClientId" type="text" readonly />
+          </div>
+        </div>
 
-<label>Stock Issued (Portions)</label>
-<input type="number" id="issuedPortions">
+        <label for="ncClientName">Client Name</label>
+        <input id="ncClientName" type="text" placeholder="Client name" />
 
-<label>Stock Issued (kg)</label>
-<input type="number" id="issuedKg">
+        <label for="ncLevel">Level</label>
+        <select id="ncLevel">
+          <option value="N+1">N+1</option>
+          <option value="N+2">N+2</option>
+          <option value="N+3">N+3</option>
+        </select>
+        <p class="small">Auto-set by type (Retailer→N+1, Schools/Restaurant/Eatery/Corporate/Institution→N+2, Individual→N+3) but editable.</p>
 
-<label>Closing Balance (Portions)</label>
-<input type="number" id="closingPortions">
+        <label for="ncContact">Contact</label>
+        <input id="ncContact" type="text" placeholder="Phone / name / contact info" />
 
-<label>Closing Balance (kg)</label>
-<input type="number" id="closingKg">
+        <div id="statusEnrollWrap">
+          <label for="ncStatus">Status</label>
+          <select id="ncStatus">
+            <option value="Active">Active</option>
+            <option value="On hold">On hold</option>
+            <option value="Quit">Quit</option>
+          </select>
 
-<label>Stock Sold (kg)</label>
-<input type="number" id="soldKg" readonly>
+          <label for="ncEnrollDate">Enrollment Date</label>
+          <input id="ncEnrollDate" type="date" />
+        </div>
+      </div>
 
-</div>
+      <!-- ORDER FORM -->
+      <div id="orderForm" style="display:none;">
+        <label for="ordClientId">Client ID (select or type)</label>
+        <input id="ordClientId" list="clientIdList" placeholder="Choose or type Client ID" />
+        <datalist id="clientIdList"></datalist>
 
-<div class="card">
-<h2>Financial Data</h2>
+        <p class="small">
+          Note: Blank 1 and Blank 2 columns will appear empty in the Orders table and XLSX export.
+        </p>
 
-<label>Cash Collected (UGX)</label>
-<input type="number" id="cashCollected">
+        <label for="ordDate">Date of Order</label>
+        <input id="ordDate" type="date" />
 
-<label>Cash Expected (UGX)</label>
-<input type="text" id="cashExpected" readonly>
+        <label for="ordDeliveryDate">Date of Delivery</label>
+        <input id="ordDeliveryDate" type="date" />
 
-<label>Discrepancy (UGX)</label>
-<input type="text" id="discrepancy" readonly>
+        <label for="ordDeliveryTime">Time of Delivery</label>
+        <input id="ordDeliveryTime" type="time" />
 
-<label>Commission Rate (%)</label>
-<input type="number" id="commissionRate" value="20">
+        <label for="ordLocation">Location of Delivery</label>
+        <input id="ordLocation" type="text" placeholder="Type location" />
 
-<label>Day's Commission (UGX)</label>
-<input type="text" id="commission" readonly>
+        <label for="ordProduct">Type of Product</label>
+        <select id="ordProduct">
+          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
+          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
+          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
+          <option value="Skewers (portion)">Skewers (portion)</option>
+        </select>
 
-<p class="error" id="errorMsg"></p>
-<p class="warning" id="warnMsg"></p>
+        <label for="ordQty">Quantity</label>
+        <input id="ordQty" type="number" step="0.001" placeholder="Enter quantity" />
 
-<div class="flex">
-  <button class="btn-primary" onclick="recordData()">Record Data</button>
-  <button class="btn-secondary" onclick="resetForm()">Reset Form</button>
-</div>
-</div>
+        <label for="ordUnitPrice">Unit price (UGX) (auto, but editable)</label>
+        <input id="ordUnitPrice" type="number" step="1" />
 
-<div class="card">
-<h2>Records</h2>
-<div class="flex">
-  <button class="btn-orange" onclick="exportTable()">Export XLSX</button>
-  <button class="btn-secondary" onclick="resetTable()">Reset Table</button>
-</div>
+        <label for="ordDiscType">Type of discount</label>
+        <select id="ordDiscType">
+          <option value="%">%</option>
+          <option value="UGX">UGX</option>
+        </select>
 
-<div class="table-container">
-<table id="recordsTable">
-<thead>
-<tr>
-<th>Date</th>
-<th>District</th>
-<th>Channel</th>
-<th>Product</th>
+        <div class="flex">
+          <div style="flex:1; min-width:220px;">
+            <label for="ordDiscPct">Discount (%)</label>
+            <input id="ordDiscPct" type="number" step="0.01" placeholder="Enter discount %" />
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label for="ordDiscUgx">Discount (UGX)</label>
+            <input id="ordDiscUgx" type="number" step="1" placeholder="Enter discount UGX" />
+          </div>
+        </div>
 
-<!-- SA ID before SA Name -->
-<th>SA ID</th>
-<th>SA</th>
+        <!-- Indicative summary (not in table) -->
+        <div class="financial-card" style="margin-top:6px;">
+          <div class="financial-title">Order Price Summary (Indicative)</div>
+          <div class="small">Price before discount: <span id="ordBefore">0</span> UGX</div>
+          <div class="small">Discount: <span id="ordDiscShow">0</span></div>
+          <div class="small">Price after discount: <span id="ordAfter">0</span> UGX</div>
+        </div>
+      </div>
 
-<th>Parish</th>
+      <!-- PAYMENT FORM (replaces SALE) -->
+      <div id="paymentForm" style="display:none;">
+        <label for="payClientId">Client ID (select or type)</label>
+        <input id="payClientId" list="clientIdList" placeholder="Choose or type Client ID" />
 
-<th>Unit Price (UGX)</th>
-<th>Portion Weight (kg)</th>
-<th>Stock Issued (Portions)</th>
-<th>Stock Issued (kg)</th>
-<th>Closing Balance (Portions)</th>
-<th>Closing Balance (kg)</th>
-<th>Stock Sold (kg)</th>
+        <label for="payOrderNumber">Order Number</label>
+        <input id="payOrderNumber" type="text" placeholder="Enter order number" />
 
-<th>Cash Collected (UGX)</th>
-<th>Cash Expected (UGX)</th>
-<th>Discrepancy (UGX)</th>
-<th>Commission Rate (%)</th>
-<th>Day's Commission (UGX)</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
-</div>
+        <label for="payProduct">Product</label>
+        <select id="payProduct">
+          <option value="Fried tofu (kg)">Fried tofu (kg)</option>
+          <option value="Fresh tofu (kg)">Fresh tofu (kg)</option>
+          <option value="Kikalayi (kg)">Kikalayi (kg)</option>
+          <option value="Kikalayi (portion)">Kikalayi (portion)</option>
+          <option value="Skewers (portion)">Skewers (portion)</option>
+        </select>
 
-</div>
+        <label for="payUnitPrice">Unit Price (auto, but editable)</label>
+        <input id="payUnitPrice" type="number" step="1" />
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+        <div class="flex">
+          <div style="flex:1; min-width:220px;">
+            <label for="payQtyKg">Quantity (kg)</label>
+            <input id="payQtyKg" type="number" step="0.001" placeholder="Enter kg" />
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label for="payQtyPortion">Quantity (portion)</label>
+            <input id="payQtyPortion" type="number" step="0.001" placeholder="Enter portions" />
+          </div>
+        </div>
+        <p class="small">For tofu: 1 portion = 1 kg. Kikalayi: 0.04 kg/portion. Skewers: 0.045 kg/portion.</p>
+
+        <div class="financial-card">
+          <div class="financial-title">Financial Data</div>
+
+          <label for="payExpected">Expected Cash Collected (auto)</label>
+          <input id="payExpected" type="number" readonly />
+
+          <label for="payActual">Actual Cash Collected (to be filled)</label>
+          <input id="payActual" type="number" step="1" placeholder="Enter actual cash" />
+
+          <label for="payDiscrepancy">Discrepancy (Expected - Actual) (auto)</label>
+          <input id="payDiscrepancy" type="number" readonly />
+
+          <label for="payComment">Comment</label>
+          <textarea id="payComment" placeholder="Write a comment..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex">
+        <button class="btn-primary" id="recordBtn">Record Data</button>
+        <button class="btn-secondary" id="resetBtn">Reset Form</button>
+        <button class="btn-secondary" id="backBtn">Go Back to Global Interface</button>
+      </div>
+
+      <p class="error" id="formError"></p>
+      <p class="warning" id="formWarn"></p>
+    </div>
+
+    <!-- Records Card -->
+    <div class="card">
+      <h2>Records</h2>
+
+      <div class="flex">
+        <button class="btn-orange" id="exportBtn">Export XLSX</button>
+      </div>
+
+      <h3 style="margin-bottom:6px;">Clients</h3>
+      <div class="flex" style="margin-bottom:8px;">
+        <button class="btn-secondary" id="resetClientsBtn">Reset Clients Table</button>
+      </div>
+      <div class="table-container">
+        <table id="clientsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SE Name</th>
+              <th>Client ID</th>
+              <th>Client name</th>
+              <th>Client type</th>
+              <th>Level</th>
+              <th>District</th>
+              <th>Parish</th>
+              <th>Contact</th>
+              <th>Status</th>
+              <th>Enrollment date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:14px 0 6px;">Orders</h3>
+      <div class="flex" style="margin-bottom:8px;">
+        <button class="btn-secondary" id="resetOrdersBtn">Reset Orders Table</button>
+      </div>
+      <div class="table-container">
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SE Name</th>
+              <th>Client ID</th>
+              <th>Blank 1</th>
+              <th>Blank 2</th>
+              <th>Date of order</th>
+              <th>Date of delivery</th>
+              <th>Time of delivery</th>
+              <th>Location of delivery</th>
+              <th>Type of product</th>
+              <th>Quantity</th>
+              <th>Unit price (UGX)</th>
+              <th>Type of discount</th>
+              <th>Discount (%)</th>
+              <th>Discount (UGX)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:14px 0 6px;">Payments</h3>
+      <div class="flex" style="margin-bottom:8px;">
+        <button class="btn-secondary" id="resetPaymentsBtn">Reset Payments Table</button>
+      </div>
+      <div class="table-container">
+        <table id="paymentsTable">
+          <thead>
+            <tr>
+              <th>SE Name</th>
+              <th>Date</th>
+              <th>Client ID</th>
+              <th>Order Number</th>
+              <th>Product</th>
+              <th>Unit Price</th>
+              <th>Qty (kg)</th>
+              <th>Qty (portion)</th>
+              <th>Expected</th>
+              <th>Actual</th>
+              <th>Discrepancy</th>
+              <th>Comment</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:10px;">Data is saved in your browser (localStorage).</p>
+    </div>
+
+  </div>
 
 <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js", { scope: "./" });
-}
-
-const today = new Date().toISOString().split("T")[0];
-document.getElementById("date").value = today;
-
-const productSelect = document.getElementById("product");
-const price = document.getElementById("price");
-const weight = document.getElementById("weight");
-
-const districtSelect = document.getElementById("district");
-const parishSelect = document.getElementById("parishSelect");
-const parishInput = document.getElementById("parishInput");
-
-const soldKg = document.getElementById("soldKg");
-const warnMsg = document.getElementById("warnMsg");
-const errorMsg = document.getElementById("errorMsg");
-
-/* SA Name -> SA ID mapping */
-const saIdByName = {
-  "Amanyire Fred": "SM001",
-  "Atugonza Lydia": "SM002",
-  "Ayesiga Sunny": "SM003",
-  "Baguma AbdulKarim": "SM004",
-  "Baruza Stephen": "SM005",
-  "Katusiime Janepher": "SM006",
-  "Kemigisha Rosette": "SM007",
-  "Kiiza Majory": "SM008",
-  "Mugisa Allan": "SM009",
-  "Mugisa Humphrey": "SM010",
-  "Muwanguzi Lawrence": "SM011",
-  "Nakaga Rovince": "SM012",
-  "Natukunda Mellan": "SM013",
-  "Ngonzi Patience Comfort": "SM014",
-  "Nkyanungi Joyce": "SM015",
-  "Nuwamanya Robert": "SM016",
-  "Ofoyrwoth Gideon": "SM017",
-  "Tugozagane Jipe": "SM018",
-  "Tumusiime Brighton": "SM019"
-};
-
-/* Hoima parish dropdown (alphabetical) */
-const hoimaParishes = [
-  "Bwikya ward",
-  "Bujuura ward",
-  "Central ward Hoima",
-  "Karongo ward",
-  "Kasingo ward",
-  "Kibingo ward",
-  "Kibugubya",
-  "Kicwamba ward",
-  "Kiduuma ward",
-  "Kigorobya",
-  "Kihombooza ward",
-  "Kihuukya ward",
-  "Kizalizi",
-  "Kyesiiga ward",
-  "Kyentale ward",
-  "Northern ward Hoima",
-  "Nyakambugu ward",
-  "Southern ward Hoima",
-  "Western ward Hoima"
-].sort((a,b)=>a.localeCompare(b));
-
-function setupHoimaParishOptions(){
-  parishSelect.innerHTML = '<option value="">Select</option>';
-  hoimaParishes.forEach(p=>{
-    const opt = document.createElement("option");
-    opt.value = p;
-    opt.textContent = p;
-    parishSelect.appendChild(opt);
-  });
-}
-setupHoimaParishOptions();
-
-function updateParishField(){
-  if(districtSelect.value === "Hoima"){
-    parishInput.style.display = "none";
-    parishSelect.style.display = "block";
-  } else {
-    parishSelect.style.display = "none";
-    parishInput.style.display = "block";
-  }
-}
-
-function getParishValue(){
-  return (districtSelect.value === "Hoima") ? (parishSelect.value || "") : (parishInput.value || "");
-}
-
-districtSelect.addEventListener("change", ()=>{
-  updateParishField();
-  calculate();
-});
-updateParishField();
-
-productSelect.addEventListener("change", ()=>{
-  if(productSelect.value==="Skewer"){
-    price.value=1000;
-    weight.value=0.045;
-  } else if(productSelect.value==="Kikalayi"){
-    price.value=500;
-    weight.value=0.040;
-  } else {
-    price.value="";
-    weight.value="";
-  }
-  calculate();
-});
-
-function formatUGX(n){
-  return Number(n||0).toLocaleString();
-}
-
-function calculate(){
-  const w = parseFloat(weight.value)||0;
-
-  let issuedP = parseFloat(issuedPortions.value)||0;
-  let issuedK = parseFloat(issuedKg.value)||0;
-  let closingP = parseFloat(closingPortions.value)||0;
-  let closingK = parseFloat(closingKg.value)||0;
-
-  if(document.activeElement===issuedPortions){
-    issuedKg.value = (issuedP*w).toFixed(1);
-  }
-  if(document.activeElement===issuedKg){
-    issuedPortions.value = Math.round(issuedK/w||0);
-  }
-  if(document.activeElement===closingPortions){
-    closingKg.value = (closingP*w).toFixed(1);
-  }
-  if(document.activeElement===closingKg){
-    closingPortions.value = Math.round(closingK/w||0);
-  }
-
-  issuedP = parseFloat(issuedPortions.value)||0;
-  closingP = parseFloat(closingPortions.value)||0;
-  issuedK = parseFloat(issuedKg.value)||0;
-  closingK = parseFloat(closingKg.value)||0;
-
-  const soldP = issuedP - closingP;
-  const soldK = issuedK - closingK;
-
-  soldKg.value = (soldK || 0).toFixed(1);
-
-  if(soldP < 0){
-    errorMsg.innerText="Error: Closing balance cannot exceed issued stock.";
-    warnMsg.innerText="";
+/* =========================
+   Offline (Service Worker)
+========================= */
+(async function registerSW(){
+  const note = document.getElementById("offlineNote");
+  if(!("serviceWorker" in navigator)){
+    note.textContent = "Offline mode: Not supported on this browser.";
     return;
-  } else {
-    // don't clear errorMsg here because recordData may set other errors
   }
-
-  const expected = soldP * (parseFloat(price.value)||0);
-  const collected = parseFloat(cashCollected.value)||0;
-  const discrepancyVal = expected - collected;
-
-  const rate = (parseFloat(commissionRate.value)||0)/100;
-  const commissionVal = (collected * rate) - discrepancyVal;
-
-  warnMsg.innerText = "";
-  if (soldK < 2 && soldK > 0) {
-    warnMsg.innerText = "Warning: less than 2kg sold.";
+  try{
+    await navigator.serviceWorker.register("./service-worker.js");
+    note.textContent = "Offline mode: This app will work offline after the first load (keep it opened once while online).";
+  }catch(e){
+    console.warn("SW register failed", e);
+    note.textContent = "Offline mode: Service worker registration failed (check hosting on HTTPS/localhost).";
   }
+})();
 
-  cashExpected.value = formatUGX(expected);
-  discrepancy.value = formatUGX(discrepancyVal);
-  commission.value = formatUGX(commissionVal);
-}
+/* =========================
+   Storage + State
+========================= */
+const STORAGE_KEY = "daily_se_tool_v2";
 
-document.querySelectorAll("input").forEach(i=>i.addEventListener("input",calculate));
-document.querySelectorAll("select").forEach(s=>s.addEventListener("change",calculate));
+// Keep existing "sales" storage but use it as "payments" (backward compatible)
+let state = { clients: [], orders: [], sales: [] };
 
-function storageKeyForCurrentDate(){
-  const d = (date.value || today).replaceAll("-", "");
-  return `SA_Sales - ${d}`;
-}
-
-function saveLocal(){
-  const key = storageKeyForCurrentDate();
-  localStorage.setItem(key, document.querySelector("#recordsTable tbody").innerHTML);
-  localStorage.setItem("SA_Sales_LAST", key);
-}
-
-function bindDeleteButtons(){
-  document.querySelectorAll("#recordsTable tbody tr").forEach(tr=>{
-    const btn = tr.querySelector("button");
-    if(btn){
-      btn.onclick=()=>{
-        tr.remove();
-        saveLocal();
-      };
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state.clients = Array.isArray(parsed.clients) ? parsed.clients : [];
+      state.orders  = Array.isArray(parsed.orders)  ? parsed.orders  : [];
+      state.sales   = Array.isArray(parsed.sales)   ? parsed.sales   : [];
     }
+  }catch(e){
+    console.warn("Failed to load state", e);
+  }
+}
+
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* =========================
+   Helpers
+========================= */
+function todayISO(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function setText(id, text){ document.getElementById(id).textContent = text || ""; }
+function show(el){ el.style.display = ""; }
+function hide(el){ el.style.display = "none"; }
+function isValid3Digits(s){ return /^[0-9]{3}$/.test(String(s || "").trim()); }
+
+// "HH:MM" -> "H:MMAM"/"H:MMPM" (no space)
+function toAmPm(hhmm){
+  const t = String(hhmm || "").trim();
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return "";
+  let h = Number(m[1]);
+  const min = m[2];
+  if(!Number.isFinite(h)) return "";
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if(h === 0) h = 12;
+  return `${h}:${min}${suffix}`;
+}
+
+/*
+Client digit scheme (C-XXXXX):
+- 1xxxx Hoima, 2xxxx Buliisa, 3xxxx Masindi, 0xxxx Other
+- Second digit is type:
+  1 schools, 2 retailers, 3 restaurants, 4 eateries, 5 corporate employees, 6 institutions, 7-9 individuals
+- Last 3 digits are manual (XXX)
+*/
+function districtDigit(district){
+  if(district === "Hoima") return "1";
+  if(district === "Buliisa") return "2";
+  if(district === "Masindi") return "3";
+  return "0";
+}
+function typeDigit(type){
+  if(type === "School - Menu" || type === "School - Canteen" || type === "School Other") return "1";
+  if(type === "Retailer") return "2";
+  if(type === "Restaurant") return "3";
+  if(type === "Eatery") return "4";
+  if(type === "Corporate employee") return "5";
+  if(type === "Institution") return "6";
+  return "";
+}
+function autoLevelByType(type){
+  if(type === "Retailer") return "N+1";
+  if(
+    type === "School - Menu" ||
+    type === "School - Canteen" ||
+    type === "School Other" ||
+    type === "Restaurant" ||
+    type === "Eatery" ||
+    type === "Corporate employee" ||
+    type === "Institution"
+  ) return "N+2";
+  if(type === "Individual") return "N+3";
+  return "N+2";
+}
+function ratioKgPerPortion(product){
+  if(product === "Kikalayi (portion)" || product === "Kikalayi (kg)") return 0.04;
+  if(product === "Skewers (portion)") return 0.045;
+  if(product === "Fresh tofu (kg)" || product === "Fried tofu (kg)") return 1.0;
+  return 1.0;
+}
+function isRetailerClientId(clientId){
+  const id = String(clientId || "").trim();
+  return /^C-[0-3]2\d{3}$/.test(id);
+}
+function defaultUnitPrice(product, clientId){
+  const retailer = isRetailerClientId(clientId);
+  if(product === "Fresh tofu (kg)") return retailer ? 5000 : 6000;
+  if(product === "Fried tofu (kg)") return retailer ? 6500 : 7500;
+  if(product === "Kikalayi (kg)") return 10000;
+  if(product === "Kikalayi (portion)") return 500;
+  if(product === "Skewers (portion)") return 1000;
+  return 0;
+}
+function toNumber(x){
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
+function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+function expectedCash(product, unitPriceValue, qtyKg, qtyPortion){
+  const price = toNumber(unitPriceValue);
+  if(product.includes("(portion)")){
+    return price * (toNumber(qtyPortion) || 0);
+  }
+  return price * (toNumber(qtyKg) || 0);
+}
+
+/* =========================
+   Elements
+========================= */
+const globalDate = document.getElementById("globalDate");
+const seName = document.getElementById("seName");
+const mode = document.getElementById("mode");
+
+const newClientForm = document.getElementById("newClientForm");
+const orderForm = document.getElementById("orderForm");
+const paymentForm = document.getElementById("paymentForm");
+const formTitle = document.getElementById("formTitle");
+
+const recordBtn = document.getElementById("recordBtn");
+const resetBtn = document.getElementById("resetBtn");
+const backBtn = document.getElementById("backBtn");
+const exportBtn = document.getElementById("exportBtn");
+
+const resetClientsBtn = document.getElementById("resetClientsBtn");
+const resetOrdersBtn = document.getElementById("resetOrdersBtn");
+const resetPaymentsBtn = document.getElementById("resetPaymentsBtn");
+
+const formError = document.getElementById("formError");
+const formWarn = document.getElementById("formWarn");
+
+// New client inputs
+const ncDistrict = document.getElementById("ncDistrict");
+const ncType = document.getElementById("ncType");
+const ncIndDigitWrap = document.getElementById("individualDigitWrap");
+const ncIndDigit = document.getElementById("ncIndDigit");
+const ncPrefix = document.getElementById("ncPrefix");
+const ncLast3 = document.getElementById("ncLast3");
+const ncClientId = document.getElementById("ncClientId");
+const ncClientName = document.getElementById("ncClientName");
+const ncLevel = document.getElementById("ncLevel");
+const ncParishHoima = document.getElementById("ncParishHoima");
+const ncParishText = document.getElementById("ncParishText");
+const ncContact = document.getElementById("ncContact");
+const statusEnrollWrap = document.getElementById("statusEnrollWrap");
+const ncStatus = document.getElementById("ncStatus");
+const ncEnrollDate = document.getElementById("ncEnrollDate");
+
+// Order inputs
+const ordClientId = document.getElementById("ordClientId");
+const ordDate = document.getElementById("ordDate");
+const ordDeliveryDate = document.getElementById("ordDeliveryDate");
+const ordDeliveryTime = document.getElementById("ordDeliveryTime");
+const ordLocation = document.getElementById("ordLocation");
+const ordProduct = document.getElementById("ordProduct");
+const ordQty = document.getElementById("ordQty");
+const ordUnitPrice = document.getElementById("ordUnitPrice");
+const ordDiscType = document.getElementById("ordDiscType");
+const ordDiscPct = document.getElementById("ordDiscPct");
+const ordDiscUgx = document.getElementById("ordDiscUgx");
+const ordBefore = document.getElementById("ordBefore");
+const ordDiscShow = document.getElementById("ordDiscShow");
+const ordAfter = document.getElementById("ordAfter");
+
+// Payment inputs
+const payClientId = document.getElementById("payClientId");
+const payOrderNumber = document.getElementById("payOrderNumber");
+const payProduct = document.getElementById("payProduct");
+const payUnitPrice = document.getElementById("payUnitPrice");
+const payQtyKg = document.getElementById("payQtyKg");
+const payQtyPortion = document.getElementById("payQtyPortion");
+const payExpected = document.getElementById("payExpected");
+const payActual = document.getElementById("payActual");
+const payDiscrepancy = document.getElementById("payDiscrepancy");
+const payComment = document.getElementById("payComment");
+
+const clientIdList = document.getElementById("clientIdList");
+
+/* =========================
+   UI Logic
+========================= */
+function setModeUI(){
+  setText("warnMsg", "");
+  setText("errorMsg", "");
+  setText("formWarn", "");
+  setText("formError", "");
+
+  const m = mode.value;
+  hide(newClientForm); hide(orderForm); hide(paymentForm);
+
+  if(m === "newClient"){
+    formTitle.textContent = "New Client";
+    show(newClientForm);
+  }else if(m === "order"){
+    formTitle.textContent = "Order";
+    show(orderForm);
+  }else{
+    formTitle.textContent = "Payment";
+    show(paymentForm);
+  }
+}
+
+function updateParishUI(){
+  if(ncDistrict.value === "Hoima"){
+    show(ncParishHoima);
+    hide(ncParishText);
+  }else{
+    hide(ncParishHoima);
+    show(ncParishText);
+  }
+}
+
+function updateClientIdPrefix(){
+  const d1 = districtDigit(ncDistrict.value);
+  const type = ncType.value;
+
+  if(type === "Individual"){
+    show(ncIndDigitWrap);
+    const d2 = String(ncIndDigit.value);
+    ncPrefix.value = `C-${d1}${d2}`;
+  }else{
+    hide(ncIndDigitWrap);
+    const d2 = typeDigit(type);
+    ncPrefix.value = `C-${d1}${d2}`;
+  }
+
+  ncLevel.value = autoLevelByType(type);
+
+  if(type === "Individual"){
+    hide(statusEnrollWrap);
+  }else{
+    show(statusEnrollWrap);
+  }
+
+  updateFullClientId();
+}
+
+function updateFullClientId(){
+  const last3 = String(ncLast3.value || "").trim();
+  const prefix = String(ncPrefix.value || "").trim(); // "C-12"
+  const m = prefix.match(/^C-(\d{2})$/);
+  if(m && /^[0-9]{0,3}$/.test(last3)){
+    const digits = (m[1] + last3).padEnd(5, "");
+    ncClientId.value = `C-${digits}`;
+  }else{
+    ncClientId.value = "";
+  }
+}
+
+function rebuildClientIdDatalist(){
+  const ids = new Set();
+  state.clients.forEach(c => ids.add(String(c.clientId)));
+  clientIdList.innerHTML = "";
+  [...ids].sort().forEach(id => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    clientIdList.appendChild(opt);
   });
 }
 
-function loadLocal(){
-  const last = localStorage.getItem("SA_Sales_LAST");
-  const key = last || storageKeyForCurrentDate();
-  const data = localStorage.getItem(key);
-  if(data){
-    document.querySelector("#recordsTable tbody").innerHTML=data;
-    bindDeleteButtons();
-  }
+/* =========================
+   ORDER: Unit price + discount calculations
+========================= */
+let orderPriceOverridden = false;
+let orderDiscLock = false;
+
+function applyDefaultOrderPriceIfNotOverridden(){
+  if(orderPriceOverridden) return;
+  const cid = ordClientId.value.trim();
+  const prod = ordProduct.value;
+  ordUnitPrice.value = defaultUnitPrice(prod, cid);
 }
-loadLocal();
 
-function recordData(){
-  // clear record-specific errors first
-  errorMsg.innerText = "";
+function calcOrderBefore(){
+  const qty = toNumber(ordQty.value);
+  const price = toNumber(ordUnitPrice.value);
+  return round2(qty * price);
+}
 
-  if(!date.value || !district.value || !channel.value || !product.value || !sa.value){
-    alert("Please fill required fields.");
+function updateOrderDiscountAndSummary(source){
+  if(orderDiscLock) return;
+  orderDiscLock = true;
+
+  const before = calcOrderBefore();
+  const type = ordDiscType.value;
+
+  let pct = toNumber(ordDiscPct.value);
+  let ugx = toNumber(ordDiscUgx.value);
+
+  if(before <= 0){
+    ordBefore.textContent = "0";
+    ordDiscShow.textContent = "0";
+    ordAfter.textContent = "0";
+    orderDiscLock = false;
     return;
   }
 
-  const saName = sa.value;
-  const saId = saIdByName[saName];
-
-  // ✅ Error if no SA ID
-  if(!saId){
-    errorMsg.innerText = "Error: SA ID not found for selected SA. Please check the SA list/mapping.";
-    warnMsg.innerText = "";
-    return;
+  if(type === "%"){
+    if(source === "ugx") {
+      pct = (ugx / before) * 100;
+      ordDiscPct.value = round2(pct);
+    }
+    ugx = (toNumber(ordDiscPct.value) / 100) * before;
+    ordDiscUgx.value = round2(ugx);
+  }else{
+    if(source === "pct") {
+      ugx = (pct / 100) * before;
+      ordDiscUgx.value = round2(ugx);
+    }
+    pct = (toNumber(ordDiscUgx.value) / before) * 100;
+    ordDiscPct.value = round2(pct);
   }
 
-  const table = document.querySelector("#recordsTable tbody");
-  const row = table.insertRow();
+  const finalUgx = Math.max(0, before - toNumber(ordDiscUgx.value));
+  ordBefore.textContent = String(round2(before));
+  ordAfter.textContent = String(round2(finalUgx));
 
-  row.insertCell().innerText = date.value;
-  row.insertCell().innerText = district.value;
-  row.insertCell().innerText = channel.value;
-  row.insertCell().innerText = product.value;
+  const showPct = round2(toNumber(ordDiscPct.value));
+  const showUgx = round2(toNumber(ordDiscUgx.value));
+  ordDiscShow.textContent = type === "%" ? `${showPct}% (${showUgx} UGX)` : `${showUgx} UGX (${showPct}%)`;
 
-  // SA ID before SA name
-  row.insertCell().innerText = saId;
-  row.insertCell().innerText = saName;
+  orderDiscLock = false;
+}
 
-  row.insertCell().innerText = getParishValue();
+/* =========================
+   PAYMENT: unit price + qty sync + financial calcs
+========================= */
+let payLock = false;
+let payPriceOverridden = false;
 
-  row.insertCell().innerText = price.value;
-  row.insertCell().innerText = weight.value;
-  row.insertCell().innerText = issuedPortions.value;
-  row.insertCell().innerText = issuedKg.value;
-  row.insertCell().innerText = closingPortions.value;
-  row.insertCell().innerText = closingKg.value;
-  row.insertCell().innerText = soldKg.value;
+function applyDefaultPayPriceIfNotOverridden(){
+  if(payPriceOverridden) return;
+  const cid = payClientId.value.trim();
+  const prod = payProduct.value;
+  payUnitPrice.value = defaultUnitPrice(prod, cid);
+}
 
-  row.insertCell().innerText = cashCollected.value;
-  row.insertCell().innerText = cashExpected.value;
-  row.insertCell().innerText = discrepancy.value;
-  row.insertCell().innerText = commissionRate.value;
-  row.insertCell().innerText = commission.value;
+function updatePaymentCalcs(){
+  const prod = payProduct.value;
+  const kg = toNumber(payQtyKg.value);
+  const portion = toNumber(payQtyPortion.value);
 
-  const del = document.createElement("button");
-  del.innerText="Delete";
-  del.onclick=()=>{
-    row.remove();
-    saveLocal();
-  };
-  row.insertCell().appendChild(del);
+  const exp = expectedCash(prod, payUnitPrice.value, kg, portion);
+  payExpected.value = round2(exp);
 
-  saveLocal();
+  const actual = toNumber(payActual.value);
+  const disc = exp - actual;
+  payDiscrepancy.value = round2(disc);
+}
+
+function syncPayKgFromPortion(){
+  if(payLock) return;
+  payLock = true;
+  const ratio = ratioKgPerPortion(payProduct.value);
+  const p = toNumber(payQtyPortion.value);
+  payQtyKg.value = round2(p * ratio);
+  payLock = false;
+  updatePaymentCalcs();
+}
+
+function syncPayPortionFromKg(){
+  if(payLock) return;
+  payLock = true;
+  const ratio = ratioKgPerPortion(payProduct.value);
+  const kg = toNumber(payQtyKg.value);
+  payQtyPortion.value = ratio === 0 ? "" : round2(kg / ratio);
+  payLock = false;
+  updatePaymentCalcs();
+}
+
+/* =========================
+   Record Actions
+========================= */
+function validateGlobal(){
+  const date = globalDate.value;
+  const se = seName.value.trim();
+  if(!date) return "Please select a date.";
+  if(!se) return "Please enter SE Name.";
+  return "";
+}
+
+function recordNewClient(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const district = ncDistrict.value;
+  const type = ncType.value;
+
+  const prefix = ncPrefix.value.trim(); // "C-12"
+  const last3 = ncLast3.value.trim();
+  if(!/^C-\d{2}$/.test(prefix)) return "Client ID prefix is not valid.";
+  if(!isValid3Digits(last3)) return "Please enter the last 3 digits (XXX) as exactly 3 numbers (e.g., 001).";
+
+  const clientId = `${prefix}${last3}`; // C-12XXX
+
+  const clientName = ncClientName.value.trim();
+  if(!clientName) return "Please enter Client Name.";
+
+  const level = ncLevel.value;
+
+  let parish = "";
+  if(district === "Hoima"){
+    parish = ncParishHoima.value.trim();
+    if(!parish) return "Please select a parish (ward) for Hoima.";
+  }else{
+    parish = ncParishText.value.trim();
+    if(!parish) return "Please type the parish for this district.";
+  }
+
+  const contact = ncContact.value.trim();
+  if(type !== "Individual" && !contact){
+    return "Please enter Contact (required for non-individual clients).";
+  }
+
+  let status = "";
+  let enrollDate = "";
+  if(type !== "Individual"){
+    status = ncStatus.value;
+    enrollDate = ncEnrollDate.value;
+    if(!enrollDate) return "Please choose Enrollment Date.";
+  }
+
+  state.clients.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId,
+    clientName,
+    clientType: type,
+    level,
+    district,
+    parish,
+    contact,
+    status,
+    enrollmentDate: enrollDate
+  });
+
+  saveState();
+  renderAll();
+  rebuildClientIdDatalist();
+  return "";
+}
+
+function recordOrder(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const cid = ordClientId.value.trim();
+  if(!cid) return "Please select or type a Client ID.";
+
+  const dOrder = ordDate.value;
+  const dDel = ordDeliveryDate.value;
+  if(!dOrder) return "Please choose Date of Order.";
+  if(!dDel) return "Please choose Date of Delivery.";
+
+  const tDelRaw = ordDeliveryTime.value;
+  if(!tDelRaw) return "Please choose Time of Delivery.";
+  const tDel = toAmPm(tDelRaw);
+  if(!tDel) return "Time of Delivery is not valid.";
+
+  const loc = ordLocation.value.trim();
+  if(!loc) return "Please enter Location of Delivery.";
+
+  const prod = ordProduct.value;
+
+  const qtyRaw = ordQty.value;
+  if(qtyRaw === "" || qtyRaw === null) return "Please enter Quantity.";
+  const qty = toNumber(qtyRaw);
+
+  const unitPrice = toNumber(ordUnitPrice.value);
+  if(unitPrice <= 0) return "Please enter Unit price (UGX).";
+
+  const discType = ordDiscType.value;
+  const discPct = round2(toNumber(ordDiscPct.value));
+  const discUgx = round2(toNumber(ordDiscUgx.value));
+
+  state.orders.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId: cid,
+    blank1: "",
+    blank2: "",
+    dateOfOrder: dOrder,
+    dateOfDelivery: dDel,
+    timeOfDelivery: tDel,
+    location: loc,
+    product: prod,
+    quantity: round2(qty),
+    unitPrice: round2(unitPrice),
+    discountType: discType,
+    discountPct: discPct,
+    discountUgx: discUgx
+  });
+
+  saveState();
+  renderAll();
+  return "";
+}
+
+function recordPayment(){
+  const err = validateGlobal();
+  if(err) return err;
+
+  const cid = payClientId.value.trim();
+  if(!cid) return "Please select or type a Client ID.";
+
+  const orderNo = payOrderNumber.value.trim();
+  if(!orderNo) return "Please enter Order Number.";
+
+  const prod = payProduct.value;
+
+  const kg = toNumber(payQtyKg.value);
+  const portion = toNumber(payQtyPortion.value);
+  if(kg === 0 && portion === 0){
+    return "Please enter a quantity in kg or portion.";
+  }
+
+  const price = toNumber(payUnitPrice.value);
+  const exp = toNumber(payExpected.value);
+  const actual = toNumber(payActual.value);
+  const disc = toNumber(payDiscrepancy.value);
+  const comment = payComment.value || "";
+
+  state.sales.push({
+    date: globalDate.value,
+    seName: seName.value.trim(),
+    clientId: cid,
+    orderNumber: orderNo,
+    product: prod,
+    unitPrice: round2(price),
+    qtyKg: round2(kg),
+    qtyPortion: round2(portion),
+    expected: round2(exp),
+    actual: round2(actual),
+    discrepancy: round2(disc),
+    comment: comment
+  });
+
+  saveState();
+  renderAll();
+  return "";
 }
 
 function resetForm(){
-  document.querySelectorAll("input").forEach(i=>i.value="");
+  setText("formWarn", "");
+  setText("formError", "");
 
-  district.value = "";
-  channel.value = "";
-  product.value = "";
-  sa.value = "";
-
-  parishInput.value = "";
-  parishSelect.value = "";
-  updateParishField();
-
-  commissionRate.value = 20;
-  date.value = today;
-
-  warnMsg.innerText = "";
-  errorMsg.innerText = "";
-
-  calculate();
-}
-
-function resetTable(){
-  document.querySelector("#recordsTable tbody").innerHTML="";
-  const last = localStorage.getItem("SA_Sales_LAST");
-  if(last) localStorage.removeItem(last);
-}
-
-function exportTable(){
-  try {
-    if (typeof XLSX === "undefined") {
-      alert("XLSX library not loaded. Please connect once to the internet (first load) so it can be cached.");
-      return;
+  const m = mode.value;
+  if(m === "newClient"){
+    ncLast3.value = "";
+    ncClientName.value = "";
+    ncContact.value = "";
+    ncParishHoima.value = "";
+    ncParishText.value = "";
+    if(ncType.value !== "Individual"){
+      ncStatus.value = "Active";
+      ncEnrollDate.value = todayISO();
     }
+    updateFullClientId();
+  }else if(m === "order"){
+    ordClientId.value = "";
+    ordDate.value = todayISO();
+    ordDeliveryDate.value = todayISO();
+    ordDeliveryTime.value = "";
+    ordLocation.value = "";
+    ordProduct.value = "Fried tofu (kg)";
+    ordQty.value = "";
 
-    const table = document.getElementById("recordsTable");
-    const wb = XLSX.utils.table_to_book(table, { sheet: "Sales" });
-
-    const d = (date.value || today).replaceAll("-", "");
-    const filename = `SA_Sales - ${d}.xlsx`;
-
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-
-  } catch (e) {
-    console.error(e);
-    alert("Export failed. Check console for details.");
+    orderPriceOverridden = false;
+    ordDiscType.value = "%";
+    ordDiscPct.value = "";
+    ordDiscUgx.value = "";
+    applyDefaultOrderPriceIfNotOverridden();
+    updateOrderDiscountAndSummary("type");
+  }else{
+    payClientId.value = "";
+    payOrderNumber.value = "";
+    payProduct.value = "Fried tofu (kg)";
+    payQtyKg.value = "";
+    payQtyPortion.value = "";
+    payActual.value = "";
+    payComment.value = "";
+    payPriceOverridden = false;
+    applyDefaultPayPriceIfNotOverridden();
+    updatePaymentCalcs();
   }
 }
+
+function goBack(){
+  document.getElementById("globalCard").scrollIntoView({behavior:"smooth"});
+}
+
+/* =========================
+   Reset tables
+========================= */
+function resetClientsTable(){
+  const ok = confirm(
+    "Are you sure?\n\nThis will delete ALL Clients records and remove the Client ID list used in Order/Payment."
+  );
+  if(!ok) return;
+  state.clients = [];
+  saveState();
+  renderAll();
+  rebuildClientIdDatalist();
+}
+function resetOrdersTable(){
+  const ok = confirm("Are you sure you want to delete ALL Orders records?");
+  if(!ok) return;
+  state.orders = [];
+  saveState();
+  renderAll();
+}
+function resetPaymentsTable(){
+  const ok = confirm("Are you sure you want to delete ALL Payments records?");
+  if(!ok) return;
+  state.sales = [];
+  saveState();
+  renderAll();
+}
+
+/* =========================
+   Render Tables
+========================= */
+function createDeleteBtn(onClick){
+  const btn = document.createElement("button");
+  btn.textContent = "Delete";
+  btn.className = "btn-secondary";
+  btn.style.padding = "6px 10px";
+  btn.style.borderRadius = "999px";
+  btn.style.border = "1px solid rgba(220,38,38,0.35)";
+  btn.style.background = "linear-gradient(180deg, #fff 0%, #fff5f5 100%)";
+  btn.style.color = "#DC2626";
+  btn.style.boxShadow = "none";
+  btn.style.fontWeight = "900";
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+}
+
+function renderClients(){
+  const tbody = document.querySelector("#clientsTable tbody");
+  tbody.innerHTML = "";
+  state.clients.forEach((c, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.date}</td>
+      <td>${escapeHtml(c.seName)}</td>
+      <td>${escapeHtml(c.clientId)}</td>
+      <td>${escapeHtml(c.clientName)}</td>
+      <td>${escapeHtml(c.clientType)}</td>
+      <td>${escapeHtml(c.level)}</td>
+      <td>${escapeHtml(c.district)}</td>
+      <td>${escapeHtml(c.parish)}</td>
+      <td>${escapeHtml(c.contact || "")}</td>
+      <td>${escapeHtml(c.status || "")}</td>
+      <td>${escapeHtml(c.enrollmentDate || "")}</td>
+      <td></td>
+    `;
+    tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
+      state.clients.splice(idx, 1);
+      saveState();
+      renderAll();
+      rebuildClientIdDatalist();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderOrders(){
+  const tbody = document.querySelector("#ordersTable tbody");
+  tbody.innerHTML = "";
+  state.orders.forEach((o, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${o.date}</td>
+      <td>${escapeHtml(o.seName)}</td>
+      <td>${escapeHtml(o.clientId)}</td>
+      <td></td>
+      <td></td>
+      <td>${escapeHtml(o.dateOfOrder)}</td>
+      <td>${escapeHtml(o.dateOfDelivery)}</td>
+      <td>${escapeHtml(o.timeOfDelivery || "")}</td>
+      <td>${escapeHtml(o.location)}</td>
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(String(o.quantity))}</td>
+      <td>${escapeHtml(String(o.unitPrice ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountType ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountPct ?? ""))}</td>
+      <td>${escapeHtml(String(o.discountUgx ?? ""))}</td>
+      <td></td>
+    `;
+    tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
+      state.orders.splice(idx, 1);
+      saveState();
+      renderAll();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderPayments(){
+  const tbody = document.querySelector("#paymentsTable tbody");
+  tbody.innerHTML = "";
+  state.sales.forEach((p, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(p.seName)}</td>
+      <td>${p.date}</td>
+      <td>${escapeHtml(p.clientId)}</td>
+      <td>${escapeHtml(p.orderNumber || "")}</td>
+      <td>${escapeHtml(p.product)}</td>
+      <td>${escapeHtml(String(p.unitPrice))}</td>
+      <td>${escapeHtml(String(p.qtyKg))}</td>
+      <td>${escapeHtml(String(p.qtyPortion))}</td>
+      <td>${escapeHtml(String(p.expected))}</td>
+      <td>${escapeHtml(String(p.actual))}</td>
+      <td>${escapeHtml(String(p.discrepancy))}</td>
+      <td>${escapeHtml(p.comment || "")}</td>
+      <td></td>
+    `;
+    tr.querySelector("td:last-child").appendChild(createDeleteBtn(() => {
+      state.sales.splice(idx, 1);
+      saveState();
+      renderAll();
+    }));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderAll(){
+  renderClients();
+  renderOrders();
+  renderPayments();
+}
+
+/* =========================
+   Export XLSX (3 sheets)
+========================= */
+function exportXLSX(){
+  setText("formError", "");
+  setText("formWarn", "");
+
+  if(typeof XLSX === "undefined"){
+    setText("formError", "XLSX library not loaded. Open the app once while ONLINE (first load), then try Export again.");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // ✅ Clients sheet reordered + added one blank column + corrected spelling "Enrollment date"
+  const clientsRows = state.clients.map(c => ({
+    "Date": c.date,
+    "SE Name": c.seName,
+    "Full Client ID": c.clientId,
+    "Client type": c.clientType,
+    "Level": c.level,
+    "District": c.district,
+    "": "", // blank column (for your copy/paste needs)
+    "Parish": c.parish,
+    "Contact": c.contact || "",
+    "Status": c.status || "",
+    "Enrollment date": c.enrollmentDate || ""
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsRows), "Clients");
+
+  const ordersRows = state.orders.map(o => ({
+    Date: o.date,
+    "SE Name": o.seName,
+    "Client ID": o.clientId,
+    "Blank 1": "",
+    "Blank 2": "",
+    "Date of order": o.dateOfOrder,
+    "Date of delivery": o.dateOfDelivery,
+    "Time of delivery": o.timeOfDelivery || "",
+    "Location of delivery": o.location,
+    "Type of product": o.product,
+    Quantity: o.quantity,
+    "Unit price (UGX)": o.unitPrice ?? "",
+    "Type of discount": o.discountType ?? "",
+    "Discount (%)": o.discountPct ?? "",
+    "Discount (UGX)": o.discountUgx ?? ""
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersRows), "Orders");
+
+  const paymentsRows = state.sales.map(p => ({
+    "SE Name": p.seName,
+    Date: p.date,
+    "Client ID": p.clientId,
+    "Order Number": p.orderNumber || "",
+    Product: p.product,
+    "Unit Price": p.unitPrice,
+    "Qty (kg)": p.qtyKg,
+    "Qty (portion)": p.qtyPortion,
+    Expected: p.expected,
+    Actual: p.actual,
+    Discrepancy: p.discrepancy,
+    Comment: p.comment || ""
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(paymentsRows), "Payments");
+
+  const date = globalDate.value || todayISO();
+  const se = (seName.value.trim() || "SE").replace(/[^a-z0-9_-]+/gi,"_");
+  XLSX.writeFile(wb, `${se}_${date}_DailyRecords.xlsx`);
+}
+
+/* =========================
+   Events
+========================= */
+mode.addEventListener("change", () => {
+  setModeUI();
+  setText("formWarn", "");
+  setText("formError", "");
+});
+
+recordBtn.addEventListener("click", () => {
+  setText("formWarn", "");
+  setText("formError", "");
+
+  const m = mode.value;
+  let err = "";
+  if(m === "newClient") err = recordNewClient();
+  else if(m === "order") err = recordOrder();
+  else err = recordPayment();
+
+  if(err){
+    setText("formError", err);
+    return;
+  }
+  setText("formWarn", "Recorded successfully.");
+});
+
+resetBtn.addEventListener("click", () => resetForm());
+backBtn.addEventListener("click", () => goBack());
+exportBtn.addEventListener("click", () => exportXLSX());
+
+resetClientsBtn.addEventListener("click", () => resetClientsTable());
+resetOrdersBtn.addEventListener("click", () => resetOrdersTable());
+resetPaymentsBtn.addEventListener("click", () => resetPaymentsTable());
+
+// New client reactive
+ncDistrict.addEventListener("change", () => { updateParishUI(); updateClientIdPrefix(); });
+ncType.addEventListener("change", () => updateClientIdPrefix());
+ncIndDigit.addEventListener("change", () => updateClientIdPrefix());
+ncLast3.addEventListener("input", () => {
+  ncLast3.value = ncLast3.value.replace(/\D/g,"").slice(0,3);
+  updateFullClientId();
+});
+
+// ORDER reactive
+ordClientId.addEventListener("input", () => {
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
+});
+ordProduct.addEventListener("change", () => {
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
+});
+ordQty.addEventListener("input", () => updateOrderDiscountAndSummary("type"));
+ordUnitPrice.addEventListener("input", () => {
+  orderPriceOverridden = true;
+  updateOrderDiscountAndSummary("type");
+});
+ordDiscType.addEventListener("change", () => updateOrderDiscountAndSummary("type"));
+ordDiscPct.addEventListener("input", () => updateOrderDiscountAndSummary("pct"));
+ordDiscUgx.addEventListener("input", () => updateOrderDiscountAndSummary("ugx"));
+
+// PAYMENT reactive
+payClientId.addEventListener("input", () => {
+  applyDefaultPayPriceIfNotOverridden();
+  updatePaymentCalcs();
+});
+payProduct.addEventListener("change", () => {
+  applyDefaultPayPriceIfNotOverridden();
+  if(payQtyKg.value !== ""){
+    syncPayPortionFromKg();
+  }else if(payQtyPortion.value !== ""){
+    syncPayKgFromPortion();
+  }else{
+    updatePaymentCalcs();
+  }
+});
+payUnitPrice.addEventListener("input", () => {
+  payPriceOverridden = true;
+  updatePaymentCalcs();
+});
+payQtyKg.addEventListener("input", () => syncPayPortionFromKg());
+payQtyPortion.addEventListener("input", () => syncPayKgFromPortion());
+payActual.addEventListener("input", () => updatePaymentCalcs());
+
+/* =========================
+   Init
+========================= */
+function init(){
+  loadState();
+
+  globalDate.value = todayISO();
+  ordDate.value = todayISO();
+  ordDeliveryDate.value = todayISO();
+  ordDeliveryTime.value = "";
+
+  ncEnrollDate.value = todayISO();
+
+  updateParishUI();
+  updateClientIdPrefix();
+  updateFullClientId();
+
+  rebuildClientIdDatalist();
+  renderAll();
+
+  // ORDER init
+  orderPriceOverridden = false;
+  ordDiscType.value = "%";
+  applyDefaultOrderPriceIfNotOverridden();
+  updateOrderDiscountAndSummary("type");
+
+  // PAYMENT init
+  payPriceOverridden = false;
+  applyDefaultPayPriceIfNotOverridden();
+  updatePaymentCalcs();
+
+  setModeUI();
+
+  // Friendly warning if XLSX not loaded yet (offline/blocked first load)
+  setTimeout(() => {
+    if (typeof XLSX === "undefined") {
+      setText("formWarn", "⚠️ XLSX not loaded yet. Open this app once with internet (first load), then Export will work.");
+    }
+  }, 1200);
+}
+init();
 </script>
 </body>
 </html>
