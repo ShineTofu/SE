@@ -649,7 +649,6 @@ hr.sep{
               <th>Date</th>
               <th>SE Name</th>
               <th>Client ID</th>
-              <th>Client name</th>
               <th>Blank 1</th>
               <th>Blank 2</th>
               <th>Date of order</th>
@@ -680,7 +679,6 @@ hr.sep{
               <th>SE Name</th>
               <th>Date</th>
               <th>Client ID</th>
-              <th>Client name</th>
               <th>Order Number</th>
               <th>Product</th>
               <th>Unit Price</th>
@@ -1222,7 +1220,6 @@ function recordOrder(){
     date: globalDate.value,
     seName: seName.value.trim(),
     clientId: cid,
-    clientName: getClientNameById(cid),
     blank1: "",
     blank2: "",
     dateOfOrder: dOrder,
@@ -1270,7 +1267,6 @@ function recordPayment(){
     date: globalDate.value,
     seName: seName.value.trim(),
     clientId: cid,
-    clientName: getClientNameById(cid),
     orderNumber: orderNo,
     product: prod,
     unitPrice: round2(price),
@@ -1421,12 +1417,10 @@ function renderOrders(){
   tbody.innerHTML = "";
   state.orders.forEach((o, idx) => {
     const tr = document.createElement("tr");
-    const clientName = o.clientName || getClientNameById(o.clientId);
     tr.innerHTML = `
       <td>${o.date}</td>
       <td>${escapeHtml(o.seName)}</td>
       <td>${escapeHtml(o.clientId)}</td>
-      <td>${escapeHtml(clientName)}</td>
       <td></td>
       <td></td>
       <td>${escapeHtml(o.dateOfOrder)}</td>
@@ -1455,12 +1449,10 @@ function renderPayments(){
   tbody.innerHTML = "";
   state.sales.forEach((p, idx) => {
     const tr = document.createElement("tr");
-    const clientName = p.clientName || getClientNameById(p.clientId);
     tr.innerHTML = `
       <td>${escapeHtml(p.seName)}</td>
       <td>${p.date}</td>
       <td>${escapeHtml(p.clientId)}</td>
-      <td>${escapeHtml(clientName)}</td>
       <td>${escapeHtml(p.orderNumber || "")}</td>
       <td>${escapeHtml(p.product)}</td>
       <td>${escapeHtml(String(p.unitPrice))}</td>
@@ -1521,7 +1513,6 @@ function exportXLSX(){
     Date: o.date,
     "SE Name": o.seName,
     "Client ID": o.clientId,
-    "Client name": o.clientName || getClientNameById(o.clientId),
     "Blank 1": "",
     "Blank 2": "",
     "Date of order": o.dateOfOrder,
@@ -1541,7 +1532,6 @@ function exportXLSX(){
     "SE Name": p.seName,
     Date: p.date,
     "Client ID": p.clientId,
-    "Client name": p.clientName || getClientNameById(p.clientId),
     "Order Number": p.orderNumber || "",
     Product: p.product,
     "Unit Price": p.unitPrice,
